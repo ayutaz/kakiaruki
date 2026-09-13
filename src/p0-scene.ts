@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 import { createInitialP0ControlState } from "./p0-control-state.ts";
 import { FixedStepRunner } from "./simulation/fixed-step-runner.ts";
-import { calculateMotorSpeed } from "./simulation/joint-controller.ts";
+import { calculateMotorSpeed } from "./domain/control/joint-controller.ts";
 import {
   createP0PhysicsRig,
   type BodySnapshot,
