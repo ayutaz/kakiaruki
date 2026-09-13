@@ -7,6 +7,8 @@ import {
   b2DefaultQueryFilter,
   b2DefaultWorldDef,
   b2DestroyWorld,
+  b2Shape_GetFilter,
+  b2World_GetContactEvents,
   b2Vec2,
   b2World_OverlapAABB,
   b2World_Step,
@@ -40,8 +42,17 @@ export const DEFAULT_PHYSICS_WORLD_OPTIONS: PhysicsWorldOptions = {
   enableSleep: false
 };
 
+export interface ContactSummary {
+  readonly beginCount: number;
+  /** 個体同士（または同一個体の別の骨同士）が触れた回数。設計上は常に0。 */
+  readonly creatureToCreatureCount: number;
+  readonly creatureToGroundCount: number;
+}
+
 export interface PhysicsWorld extends ShapeCountingWorld {
   readonly worldId: b2WorldId;
+  /** 直前のstepで発生したbegin contactを分類して返す。同じstepで2回目以降は0件。 */
+  drainContactEvents(): ContactSummary;
   /** 地面の上面のy座標。骨格はこの高さを基準に配置する。 */
   readonly groundSurfaceY: number;
   step(stepSeconds: number, subSteps: number): void;
@@ -54,6 +65,8 @@ class Box2DPhysicsWorld implements PhysicsWorld {
   readonly worldId: b2WorldId;
   readonly groundSurfaceY = 0;
   #destroyed = false;
+  #stepIndex = 0;
+  #drainedStepIndex = -1;
 
   constructor(worldId: b2WorldId) {
     this.worldId = worldId;
@@ -68,6 +81,40 @@ class Box2DPhysicsWorld implements PhysicsWorld {
       throw new RangeError("subSteps must be a positive integer");
     }
     b2World_Step(this.worldId, stepSeconds, subSteps);
+    this.#stepIndex += 1;
+  }
+
+  drainContactEvents(): ContactSummary {
+    this.#assertAlive();
+    const empty = {
+      beginCount: 0,
+      creatureToCreatureCount: 0,
+      creatureToGroundCount: 0
+    };
+    if (this.#drainedStepIndex === this.#stepIndex) {
+      return empty;
+    }
+    this.#drainedStepIndex = this.#stepIndex;
+
+    const events = b2World_GetContactEvents(this.worldId);
+    let creatureToCreatureCount = 0;
+    let creatureToGroundCount = 0;
+    for (const event of events.beginEvents ?? []) {
+      const categoryA = b2Shape_GetFilter(event.shapeIdA).categoryBits;
+      const categoryB = b2Shape_GetFilter(event.shapeIdB).categoryBits;
+      const creatureCount =
+        (categoryA === CREATURE_CATEGORY ? 1 : 0) + (categoryB === CREATURE_CATEGORY ? 1 : 0);
+      if (creatureCount === 2) {
+        creatureToCreatureCount += 1;
+      } else if (creatureCount === 1) {
+        creatureToGroundCount += 1;
+      }
+    }
+    return {
+      beginCount: events.beginCount ?? 0,
+      creatureToCreatureCount,
+      creatureToGroundCount
+    };
   }
 
   countShapes(): number {

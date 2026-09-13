@@ -21,6 +21,7 @@ import {
   b2RevoluteJoint_IsLimitEnabled,
   b2RevoluteJoint_IsMotorEnabled,
   b2RevoluteJoint_SetMotorSpeed,
+  b2Shape_EnableContactEvents,
   b2Rot_GetAngle,
   b2Vec2,
   type b2BodyId,
@@ -259,6 +260,8 @@ export function createCreature(
       maskBits: GROUND_CATEGORY,
       groupIndex: resolved.groupIndex
     });
+    // 個体間contactが0件であることを検証できるようにする（docs/12 M2受入条件）。
+    b2Shape_EnableContactEvents(capsule.shapeId, true);
     return capsule.bodyId;
   });
 

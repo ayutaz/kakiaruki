@@ -214,4 +214,20 @@ declare module "phaser-box2d/dist/PhaserBox2D.js" {
   export function b2RevoluteJoint_IsMotorEnabled(jointId: b2JointId): boolean;
   export function b2RevoluteJoint_GetMaxMotorTorque(jointId: b2JointId): number;
   export function b2RevoluteJoint_GetMotorTorque(jointId: b2JointId): number;
+
+  export interface b2ContactBeginTouchEvent {
+    shapeIdA: b2ShapeId;
+    shapeIdB: b2ShapeId;
+  }
+
+  export interface b2ContactEvents {
+    beginEvents: readonly b2ContactBeginTouchEvent[];
+    beginCount: number;
+    endCount: number;
+    hitCount: number;
+  }
+
+  export function b2World_GetContactEvents(worldId: b2WorldId): b2ContactEvents;
+  export function b2Shape_GetFilter(shapeId: b2ShapeId): b2Filter;
+  export function b2Shape_EnableContactEvents(shapeId: b2ShapeId, enabled: boolean): void;
 }
