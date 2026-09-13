@@ -8,14 +8,14 @@ import {
 import { DEFAULT_EVOLUTION_CONFIG } from "../../src/domain/evolution/evolution-engine.ts";
 import { chain4, zigzag6 } from "../fixtures/creature-graphs.ts";
 
-const BASE: EvolutionRunOptions = {
+const BASE = {
   graph: zigzag6,
   seed: 1,
   generations: 6,
   evolution: { ...DEFAULT_EVOLUTION_CONFIG, populationSize: 8, eliteCount: 2 },
   episode: { durationSeconds: 2 },
   createdAt: "2026-09-14T00:00:00.000Z"
-};
+} satisfies EvolutionRunOptions;
 
 describe("runEvolution", () => {
   it("records one statistics entry per generation", () => {
