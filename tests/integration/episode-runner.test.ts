@@ -93,7 +93,7 @@ describe("EpisodeRunner", () => {
   it("stops as invalid instead of throwing when the creature leaves the allowed range", () => {
     const { runner } = makeEpisode(createZeroCommandSource(), {
       durationSeconds: 4,
-      maxCoordinateMagnitude: 0.05
+      maxDisplacement: 0.05
     });
 
     const result = runner.run();

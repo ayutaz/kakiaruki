@@ -7,15 +7,15 @@ export interface EpisodeOptions {
   readonly stepSeconds: number;
   readonly subSteps: number;
   readonly durationSeconds: number;
-  /** これを超える座標が現れた個体はinvalidとして打ち切る。 */
-  readonly maxCoordinateMagnitude: number;
+  /** スポーン時の重心からこれ以上離れた個体はinvalidとして打ち切る [m]。 */
+  readonly maxDisplacement: number;
 }
 
 export const DEFAULT_EPISODE_OPTIONS: EpisodeOptions = {
   stepSeconds: 1 / 60,
   subSteps: 4,
   durationSeconds: 6,
-  maxCoordinateMagnitude: 500
+  maxDisplacement: 200
 };
 
 export type EpisodeStatus = "ready" | "running" | "completed" | "invalid";
@@ -47,11 +47,8 @@ export function resolveEpisodeOptions(
   if (!Number.isFinite(options.durationSeconds) || options.durationSeconds <= 0) {
     throw new RangeError("durationSeconds must be finite and greater than zero");
   }
-  if (
-    !Number.isFinite(options.maxCoordinateMagnitude) ||
-    options.maxCoordinateMagnitude <= 0
-  ) {
-    throw new RangeError("maxCoordinateMagnitude must be finite and greater than zero");
+  if (!Number.isFinite(options.maxDisplacement) || options.maxDisplacement <= 0) {
+    throw new RangeError("maxDisplacement must be finite and greater than zero");
   }
   return options;
 }
@@ -143,7 +140,9 @@ export class EpisodeTracker {
       this.#invalidReason = "non-finite-state";
       return false;
     }
-    if (this.#creature.maxAbsCoordinate() > this.#options.maxCoordinateMagnitude) {
+    if (
+      this.#creature.maxDistanceFrom(this.#startCenterOfMass) > this.#options.maxDisplacement
+    ) {
       this.#status = "invalid";
       this.#invalidReason = "out-of-bounds";
       return false;

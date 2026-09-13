@@ -42,7 +42,8 @@ export interface CreatureHandle {
   centerOfMass(): Vector2;
   snapshot(): CreatureSnapshot;
   hasFiniteState(): boolean;
-  maxAbsCoordinate(): number;
+  /** 基準点から最も遠いBodyまでの距離。レーン配置に依存しない暴走検出に使う。 */
+  maxDistanceFrom(point: Vector2): number;
   destroy(): void;
 }
 

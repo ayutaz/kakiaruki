@@ -8,6 +8,7 @@ import type {
 import {
   buildSkeletonPlan,
   computeSpawnOffset,
+  skeletonWidth,
   DEFAULT_SKELETON_SETTINGS,
   type BonePlan,
   type JointPlan
@@ -115,5 +116,20 @@ describe("computeSpawnOffset", () => {
 
     expect(lowest).toBeCloseTo(0.05);
     expect(offset.x).toBeCloseTo(0);
+  });
+});
+
+describe("skeletonWidth", () => {
+  it("measures the horizontal extent including the capsule radius", () => {
+    const plan = buildSkeletonPlan(validated(chain4));
+
+    // 4本×0.8m = 3.2m の骨の両端に半径0.11mずつ。
+    expect(skeletonWidth(plan)).toBeCloseTo(3.2 + 0.22, 6);
+  });
+
+  it("accounts for bones that are not axis aligned", () => {
+    const plan = buildSkeletonPlan(validated(lShape5));
+
+    expect(skeletonWidth(plan)).toBeCloseTo(2.4 + 0.22, 6);
   });
 });

@@ -181,12 +181,12 @@ class Box2DCreature implements CreatureHandle {
     );
   }
 
-  maxAbsCoordinate(): number {
+  maxDistanceFrom(point: Vector2): number {
     this.#assertAlive();
     let maximum = 0;
     for (const bodyId of this.#bodyIds) {
       const position = b2Body_GetPosition(bodyId);
-      maximum = Math.max(maximum, Math.abs(position.x), Math.abs(position.y));
+      maximum = Math.max(maximum, Math.hypot(position.x - point.x, position.y - point.y));
     }
     return maximum;
   }

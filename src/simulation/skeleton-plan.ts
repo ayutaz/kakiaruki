@@ -153,6 +153,18 @@ export function buildSkeletonPlan(
   return { bones, joints, body: settings.body };
 }
 
+/** 骨格の水平方向の広がり（カプセル半径を含む）。レーン間隔の算出に使う。 */
+export function skeletonWidth(plan: SkeletonPlan): number {
+  if (plan.bones.length === 0) {
+    return 0;
+  }
+  const bounds = plan.bones.flatMap((bone) => {
+    const half = Math.abs(Math.cos(bone.axisAngle)) * (bone.length / 2) + bone.radius;
+    return [bone.center.x - half, bone.center.x + half];
+  });
+  return Math.max(...bounds) - Math.min(...bounds);
+}
+
 /** 骨格の最下面が `clearance` だけ地面（y = 0）より上に来る平行移動量。 */
 export function computeSpawnOffset(plan: SkeletonPlan, clearance: number): Vector2 {
   if (plan.bones.length === 0) {
