@@ -23,4 +23,4 @@ npm run verify
 
 `npm run dev` の既定URLは `http://127.0.0.1:5173/` です。モーター、関節角度制限、シミュレーション速度を画面上で切り替えられます。
 
-設計、PoCの完了条件、技術検証記録は [docs/README.md](docs/README.md) から参照してください。P0の実測結果は [docs/11-p0-technical-validation.md](docs/11-p0-technical-validation.md) にまとめています。
+設計、PoCの完了条件、技術検証記録は [docs/README.md](docs/README.md) から参照してください。P0の実測結果は [docs/11-p0-technical-validation.md](docs/11-p0-technical-validation.md)、ここからの実行順序は [docs/12-development-plan.md](docs/12-development-plan.md) にまとめています。

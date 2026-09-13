@@ -42,7 +42,9 @@
 9. [リスク・未確定事項・意思決定記録](09-risks-open-questions-and-decisions.md)
 10. [参考資料](10-references.md)
 11. [P0技術検証結果](11-p0-technical-validation.md)
+12. [P0完了後の開発計画](12-development-plan.md)
+13. [マイルストーン品質・判断ゲート](13-milestone-quality-and-decision-gates.md)
 
 ## 次に行うこと
 
-次は P1 として、固定4〜6ボーンの `CreatureGraph`、1 World内の複数レーン、episode lifecycle、Population 1／8／32の性能測定へ進みます。P1の性能値と資源再利用は、実測が終わるまで「未確認」と扱います。
+次は [開発計画](12-development-plan.md) の M1 として、固定4〜6ボーンの `CreatureGraph`、Graph validation、Body／Joint生成、episode lifecycle、cleanup契約をTDDで実装します。Population 1／8／32の性能測定はM2で行い、実測が終わるまで「未確認」と扱います。
