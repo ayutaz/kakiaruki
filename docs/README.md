@@ -6,7 +6,7 @@
 
 `one-stroke-evolution-web` は、公開されているゲーム『一筆進化』の体験を参考に、Web向けの独立した再現実装が技術的に成立するかを検証するためのプロジェクトです。
 
-現時点では、事前調査に加えて **P0技術スパイクを完了**しています。開発環境、依存関係の固定、2ボーン物理モデル、操作画面、自動試験、本番ビルドまで作成済みです。一筆入力、複数個体、遺伝的アルゴリズムはまだ実装していません。
+現時点では、事前調査とP0技術スパイクに加えて **M1 Simulation基盤を完了**しています。`CreatureGraph` の検証、4〜6ボーンのBody／Joint生成、地面上でのepisode実行、cleanup契約まで作成済みです。複数個体、遺伝的アルゴリズム、一筆入力はまだ実装していません。
 
 ## 現在の結論
 
@@ -14,7 +14,8 @@
 - **決定済み**: Phaserは入力・描画・UIを担当し、物理シミュレーションと進化計算はフレームワークから分離する。
 - **決定済み**: 最初から一筆入力を完成させず、固定骨格の物理・関節制御・進化を先に検証する。
 - **確認済み**: Phaser Box2DのTypeScript統合、固定ステップ、2ボーンとRevolute Joint、motor、limitは最小構成で動作する。
-- **確認済み**: 自動試験8件、型検査、本番ビルド、内蔵ブラウザでの操作確認が成功した。
+- **確認済み**: 4〜6ボーンの単一個体が10,000 stepを有限値で完走し、100回の生成・cleanupでWorldのshape数が基準へ戻る。
+- **確認済み**: 自動試験77件、型検査、本番ビルドが成功した。
 - **未確認**: 複数個体性能、長時間のWorld再利用、進化によるFitness改善。
 - **未確定**: 製品名、見た目、公開方法、モバイル対応、ランキング、原作に対する再現度。
 - **フォールバック**: 技術スパイクの合格条件を満たせない場合はGodotを再評価する。
@@ -44,7 +45,10 @@
 11. [P0技術検証結果](11-p0-technical-validation.md)
 12. [P0完了後の開発計画](12-development-plan.md)
 13. [マイルストーン品質・判断ゲート](13-milestone-quality-and-decision-gates.md)
+14. [M1 Simulation基盤 検証結果](14-m1-simulation-validation.md)
+
+実装計画は `superpowers/plans/` にあります。
 
 ## 次に行うこと
 
-次は [開発計画](12-development-plan.md) の M1 として、固定4〜6ボーンの `CreatureGraph`、Graph validation、Body／Joint生成、episode lifecycle、cleanup契約をTDDで実装します。Population 1／8／32の性能測定はM2で行い、実測が終わるまで「未確認」と扱います。
+M1は完了しました（[検証結果](14-m1-simulation-validation.md)）。次は [開発計画](12-development-plan.md) の M2 として、1 World内のレーン分離、`PopulationRunner`、表示個体数と評価個体数の分離、Population 1／8／32の性能測定を行います。実測が終わるまで複数個体性能は「未確認」と扱います。

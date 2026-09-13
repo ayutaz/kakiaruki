@@ -9,7 +9,7 @@
 | R-03 | 閉ループが過拘束になる | 発散、震え | P4まで保留、substepと質量比を実測 | **未確認** |
 | R-04 | 多個体でブラウザが重い | 学習体験悪化 | 表示と計算を分離、32体から測定 | **未確認** |
 | R-05 | Phaser Box2DのTS import | build不能 | `dist/PhaserBox2D.js`を局所adapterからimportし、最小型宣言を管理 | **P0で対策確認済み** |
-| R-06 | 複数World／再作成のIssue | 世代継続不能 | P1では1 World再利用、Body／Joint cleanupを採用 | **短時間のみ確認・長時間未確認** |
+| R-06 | 複数World／再作成のIssue | 世代継続不能 | P1では1 World再利用、Body／Joint cleanupを採用 | **M1で100サイクル確認・長時間と複数個体は未確認** |
 | R-07 | Fitness hackだけが増える | 意図しない解 | 数値バグだけ除外、創発性は残す | **提案** |
 | R-08 | 進化が短時間で改善しない | 面白さ不足 | 小さいGenome、Seed群、対照実験 | **未確認** |
 | R-09 | ブラウザ間でreplayがずれる | 共有不能 | runtime version記録、必要なら軌跡保存 | **未確認** |
@@ -89,6 +89,19 @@
 - 決定: Populationを1 World内の分離レーンで評価し、世代ごとにWorldを作り直さない。
 - 理由: 公開Issueで報告されている複数Worldと再作成のリスクを避ける。
 
+### D-008: 資源リーク検出は OverlapAABB による残存shape計測で行う
+
+- 状態: **決定済み（M1）**
+- 決定: `b2World_GetCounters()` は空実装で値を返さないため、cleanup検証には `b2World_OverlapAABB` に巨大AABBと全ビットfilterを渡した残存shape数を使う。
+- 理由: Body／Joint数の内部カウンタを公開APIから取得できないため。
+- 再評価: upstreamで `b2World_GetCounters` が実装された時。
+
+### D-009: 物理実装への依存は simulation port で遮断する
+
+- 状態: **決定済み（M1）**
+- 決定: `CreatureHandle` と `SteppableWorld` を `src/simulation/ports/` に置き、`EpisodeRunner` と `src/domain/` はBox2D adapterを直接参照しない。`tests/unit/layering.test.ts` が推移的依存を機械的に検査する。
+- 理由: headless試験、性能測定、Worker化、Godotへの方針転換を容易にするため（D-005）。
+
 ### D-007: Phaser Box2Dは配布済みdistを局所adapter経由で使う
 
 - 状態: **決定済み（P0）**
@@ -98,4 +111,4 @@
 
 ## 4. 次の承認点
 
-P0は完了しました。次は [開発計画](12-development-plan.md) のM1（固定4〜6ボーン、Graph validation、episode lifecycle、cleanup契約）です。複数個体と性能測定はM2で扱います。製品名、アート、ランキング、公開先は引き続き保留できます。
+M1は完了しました（[検証結果](14-m1-simulation-validation.md)）。次は [開発計画](12-development-plan.md) のM2（1 Worldのレーン分離、Population 1／8／32の性能測定）です。M2終了時にPhaser Box2Dの継続採用を判断します。製品名、アート、ランキング、公開先は引き続き保留できます。
