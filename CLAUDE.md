@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 体験の中心は「プレイヤーが一筆で骨格を描く → 同じ形の複数個体に異なる関節制御パラメータを与える → 数秒の物理シミュレーションで移動能力を評価する → GAで世代交代する」。**形態は進化させず、関節の動かし方（controller）だけを進化させます**（D-003）。
 
-現在地点は **M0（P0技術スパイク）完了**。実装済みなのは 2 ボーン + Revolute Joint の最小物理モデルと操作UIのみで、一筆入力・複数個体・GA はまだ存在しません。次工程は **M1: Simulation基盤**（4〜6ボーンの `CreatureGraph`、validation、Body/Joint生成、`EpisodeRunner`、cleanup契約）です。
+現在地点は **M1（Simulation基盤）完了**。`CreatureGraph` の検証、4〜6ボーンのBody/Joint生成、地面上でのepisode実行、cleanup契約までが動きます。複数個体・GA・一筆入力はまだ存在しません。次工程は **M2: Population評価と性能**（1 World内のレーン分離、`PopulationRunner`、Population 1/8/32の実測）です。進捗は `docs/README.md` と `docs/superpowers/plans/` を参照。
 
 ## コマンド
 
@@ -61,11 +61,21 @@ Box2D adapter
 
 | ファイル | 役割 |
 |---|---|
+| `src/domain/creature/creature-graph.ts` | `CreatureGraph` 型と `DEFAULT_GRAPH_LIMITS`、`ValidatedCreatureGraph` ブランド型 |
+| `src/domain/creature/creature-graph-validation.ts` | 17種の不変条件を error code で返す。例外は投げない |
+| `src/domain/creature/graph-hash.ts` | 宣言順に依存しない形のhash |
+| `src/domain/control/joint-controller.ts` | 角度誤差 → motor speed の PD制御。最短角度差を使い clamp する |
+| `src/domain/control/joint-command-source.ts` | 関節指令の port。M3のGenomeがこれを実装する差し替え点 |
+| `src/domain/run/run-record.ts` | `schemaVersion` 付き再現記録。未対応versionは理由付きで拒否 |
+| `src/simulation/skeleton-plan.ts` | Graph → Bone/Joint の幾何記述（純粋）。Box2Dを知らない |
+| `src/simulation/episode-runner.ts` | 1個体1エピソードの固定step実行、metrics、invalid検出 |
 | `src/simulation/fixed-step-runner.ts` | wall time → 固定step変換。上限超過分は破棄して UI freeze を避ける |
-| `src/simulation/joint-controller.ts` | 角度誤差 → motor speed の PD制御。最短角度差を使い clamp する |
-| `src/simulation/p0-physics-rig.ts` | Box2D World / Body / Joint の生成・step・破棄。Box2D APIはここだけ |
-| `src/p0-scene.ts` | Phaser Scene。描画と DOM control の配線のみ |
-| `src/p0-control-state.ts` | 「初期状態へ戻す」の単一定義（姿勢だけ戻る不整合の再発防止） |
+| `src/simulation/ports/` | `CreatureHandle` / `SteppableWorld`。物理実装への依存はここで遮断する |
+| `src/simulation/box2d/` | Box2D adapter。**Box2D APIを呼べるのはこのディレクトリだけ** |
+| `src/simulation/p0-physics-rig.ts` | P0デモ専用の2ボーンrig（例外的にBox2Dを直接使う） |
+| `src/p0-scene.ts` | Phaser Scene。P0デモの描画と DOM control の配線のみ |
+
+`tests/unit/layering.test.ts` が「`src/domain/` からPhaser/Box2Dへ推移的にも到達しない」「Box2D importは adapter ディレクトリに限る」を機械的に検査します。新しいモジュールを足すときはこの試験を壊さないでください。
 
 ### Phaser Box2D の取り扱い（D-007）
 

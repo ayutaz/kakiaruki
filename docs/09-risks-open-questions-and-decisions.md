@@ -89,6 +89,13 @@
 - 決定: Populationを1 World内の分離レーンで評価し、世代ごとにWorldを作り直さない。
 - 理由: 公開Issueで報告されている複数Worldと再作成のリスクを避ける。
 
+### D-007: Phaser Box2Dは配布済みdistを局所adapter経由で使う
+
+- 状態: **決定済み（P0）**
+- 決定: `phaser-box2d@1.1.0` はpackage rootではなく `phaser-box2d/dist/PhaserBox2D.js` からimportし、必要最小限の型宣言をプロジェクト側に置く。
+- 理由: npm packageの `main` が示すroot entryが実体と一致せず、公式packageにTypeScript宣言も含まれていないため。
+- 再評価: upstream packageでentrypointと型宣言が整備された時。
+
 ### D-008: 資源リーク検出は OverlapAABB による残存shape計測で行う
 
 - 状態: **決定済み（M1）**
@@ -101,13 +108,6 @@
 - 状態: **決定済み（M1）**
 - 決定: `CreatureHandle` と `SteppableWorld` を `src/simulation/ports/` に置き、`EpisodeRunner` と `src/domain/` はBox2D adapterを直接参照しない。`tests/unit/layering.test.ts` が推移的依存を機械的に検査する。
 - 理由: headless試験、性能測定、Worker化、Godotへの方針転換を容易にするため（D-005）。
-
-### D-007: Phaser Box2Dは配布済みdistを局所adapter経由で使う
-
-- 状態: **決定済み（P0）**
-- 決定: `phaser-box2d@1.1.0` はpackage rootではなく `phaser-box2d/dist/PhaserBox2D.js` からimportし、必要最小限の型宣言をプロジェクト側に置く。
-- 理由: npm packageの `main` が示すroot entryが実体と一致せず、公式packageにTypeScript宣言も含まれていないため。
-- 再評価: upstream packageでentrypointと型宣言が整備された時。
 
 ## 4. 次の承認点
 
