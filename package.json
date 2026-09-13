@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "bench": "node bench/population-benchmark.ts",
+    "experiment": "node bench/evolution-experiment.ts",
     "test:watch": "vitest",
     "build": "npm run typecheck && vite build",
     "verify": "npm run test && npm run build"
