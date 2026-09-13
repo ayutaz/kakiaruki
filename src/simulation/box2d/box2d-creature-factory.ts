@@ -36,52 +36,22 @@ import {
   type PhysicsWorld
 } from "./box2d-world.ts";
 
-export interface BoneSnapshot {
-  readonly x: number;
-  readonly y: number;
-  readonly angle: number;
-  readonly length: number;
-  readonly radius: number;
-}
+import type {
+  CreatureHandle,
+  CreatureSnapshot,
+  CreatureSpawnOptions,
+  JointConfig,
+  JointState
+} from "../ports/creature-port.ts";
 
-export interface CreatureSnapshot {
-  readonly bones: readonly BoneSnapshot[];
-  readonly centerOfMass: Vector2;
-}
-
-export interface JointState {
-  readonly angle: number;
-  readonly angularVelocity: number;
-  readonly motorTorque: number;
-}
-
-export interface JointConfig {
-  readonly lowerAngle: number;
-  readonly upperAngle: number;
-  readonly maxMotorTorque: number;
-  readonly limitEnabled: boolean;
-  readonly motorEnabled: boolean;
-}
-
-export interface CreatureHandle {
-  readonly boneCount: number;
-  readonly jointCount: number;
-  jointState(index: number): JointState;
-  jointConfig(index: number): JointConfig;
-  connectedBones(index: number): readonly [number, number];
-  setMotorSpeed(index: number, speed: number): void;
-  centerOfMass(): Vector2;
-  snapshot(): CreatureSnapshot;
-  hasFiniteState(): boolean;
-  maxAbsCoordinate(): number;
-  destroy(): void;
-}
-
-export interface CreatureSpawnOptions {
-  readonly origin: Vector2;
-  /** M2のレーン分離で使う。0は「グループ指定なし」。 */
-  readonly groupIndex: number;
-}
+export type {
+  BoneSnapshot,
+  CreatureHandle,
+  CreatureSnapshot,
+  CreatureSpawnOptions,
+  JointConfig,
+  JointState
+} from "../ports/creature-port.ts";
 
 const DEFAULT_SPAWN_OPTIONS: CreatureSpawnOptions = {
   origin: { x: 0, y: 0 },

@@ -1,7 +1,8 @@
 import type { JointCommandSource } from "../domain/control/joint-command-source.ts";
 import type { Vector2 } from "../shared/vector2.ts";
 
-import type { CreatureHandle } from "./box2d/box2d-creature-factory.ts";
+import type { CreatureHandle } from "./ports/creature-port.ts";
+import type { SteppableWorld } from "./ports/world-port.ts";
 
 export interface EpisodeOptions {
   readonly stepSeconds: number;
@@ -34,9 +35,7 @@ export interface EpisodeResult {
   readonly motorEffort: number;
 }
 
-export interface SteppableWorld {
-  step(stepSeconds: number, subSteps: number): void;
-}
+export type { SteppableWorld } from "./ports/world-port.ts";
 
 export interface EpisodeDependencies {
   readonly world: SteppableWorld;

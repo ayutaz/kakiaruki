@@ -13,6 +13,8 @@ import {
   type b2WorldId
 } from "phaser-box2d/dist/PhaserBox2D.js";
 
+import type { ShapeCountingWorld } from "../ports/world-port.ts";
+
 /** 生物のBodyは地面としか衝突しない。個体間・自己の接触を構造的に排除する。 */
 export const CREATURE_CATEGORY = 0x0001;
 export const GROUND_CATEGORY = 0x0002;
@@ -38,7 +40,7 @@ export const DEFAULT_PHYSICS_WORLD_OPTIONS: PhysicsWorldOptions = {
   enableSleep: false
 };
 
-export interface PhysicsWorld {
+export interface PhysicsWorld extends ShapeCountingWorld {
   readonly worldId: b2WorldId;
   /** 地面の上面のy座標。骨格はこの高さを基準に配置する。 */
   readonly groundSurfaceY: number;
