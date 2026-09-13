@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M3 evolution replay</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #050c14;
+        color: #e7f0f7;
+        font-family: system-ui, sans-serif;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 4px;
+      }
+      p.lead {
+        margin: 0 0 16px;
+        font-size: 13px;
+        color: #9fb6c8;
+        max-width: 960px;
+        line-height: 1.6;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+        max-width: 960px;
+      }
+      label {
+        font-size: 13px;
+        color: #9fb6c8;
+      }
+      select,
+      button,
+      input[type="range"] {
+        background: #0f2334;
+        color: #e7f0f7;
+        border: 1px solid #1d3a52;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font: inherit;
+      }
+      button.primary {
+        background: #17435f;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        max-width: 960px;
+        border: 1px solid #1d3a52;
+        border-radius: 8px;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+        max-width: 960px;
+        margin: 16px 0;
+      }
+      .metric {
+        background: #0b1a27;
+        border: 1px solid #16293a;
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .metric span {
+        display: block;
+        font-size: 11px;
+        color: #7f9ab0;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .metric strong {
+        font-size: 16px;
+        font-variant-numeric: tabular-nums;
+      }
+      pre {
+        max-width: 960px;
+        max-height: 320px;
+        overflow: auto;
+        background: #0b1a27;
+        border: 1px solid #16293a;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      #status {
+        display: block;
+        margin: 8px 0 16px;
+        font-size: 13px;
+        color: #ffd166;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>M3 evolution replay</h1>
+    <p class="lead">
+      同じ骨格の集団を世代交代させ、<strong>世代0のベスト</strong>（灰色）と
+      <strong>選んだ世代のベスト</strong>（黄色）を並べて再生します。
+      縦線が開始位置、目盛りは1メートルです。判断すべきは数値ではなく、
+      「世代を重ねて動きが変わったと人が理解できるか」です。
+    </p>
+
+    <div class="controls">
+      <label for="seed">Seed</label>
+      <select id="seed">
+        <option value="1" selected>1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="5">5</option>
+        <option value="8">8</option>
+      </select>
+
+      <label for="generations">世代数</label>
+      <select id="generations">
+        <option value="10">10</option>
+        <option value="20" selected>20</option>
+        <option value="50">50</option>
+      </select>
+
+      <label for="population">個体数</label>
+      <select id="population">
+        <option value="16">16</option>
+        <option value="32" selected>32</option>
+      </select>
+
+      <label for="episode">1エピソード秒</label>
+      <select id="episode">
+        <option value="4">4</option>
+        <option value="6" selected>6</option>
+      </select>
+
+      <button id="learn" class="primary" type="button">学習する</button>
+    </div>
+
+    <div class="controls">
+      <label for="generation">比較する世代</label>
+      <input id="generation" type="range" min="0" max="0" value="0" step="1" />
+
+      <label for="speed">再生速度</label>
+      <select id="speed">
+        <option value="0.5">x0.5</option>
+        <option value="1" selected>x1</option>
+        <option value="2">x2</option>
+      </select>
+
+      <button id="play" type="button">最初から再生</button>
+      <button id="pause" type="button">一時停止</button>
+    </div>
+
+    <span id="status">「学習する」を押してください。</span>
+
+    <canvas id="view" width="960" height="380"></canvas>
+
+    <div class="metrics">
+      <div class="metric"><span>世代0 ベスト距離</span><strong id="gen0-distance">-</strong></div>
+      <div class="metric"><span>最終世代 ベスト距離</span><strong id="final-distance">-</strong></div>
+      <div class="metric"><span>best-ever 距離</span><strong id="best-distance">-</strong></div>
+      <div class="metric"><span>再生中 上段</span><strong id="distance-0">-</strong></div>
+      <div class="metric"><span>再生中 下段</span><strong id="distance-1">-</strong></div>
+      <div class="metric"><span>graph hash</span><strong id="graph-hash">-</strong></div>
+    </div>
+
+    <pre id="table">まだ学習していません。</pre>
+
+    <script type="module" src="/bench/replay.ts"></script>
+  </body>
+</html>
