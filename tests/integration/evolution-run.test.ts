@@ -99,6 +99,20 @@ describe("runEvolution", () => {
     expect(run.generations.some((stats) => stats.invalidCount > 0)).toBe(true);
   });
 
+  it("keeps the best individual of every generation for inspection and replay", () => {
+    const run = runEvolution(BASE);
+
+    expect(run.bestPerGeneration).toHaveLength(6);
+    for (const [index, best] of run.bestPerGeneration.entries()) {
+      expect(best.generation).toBe(index);
+      expect(best.fitness).toBeCloseTo(run.generations[index]!.bestFitness, 9);
+      expect(best.genome.joints).toHaveLength(5);
+    }
+    expect(run.bestPerGeneration.at(-1)!.fitness).toBeLessThanOrEqual(
+      run.bestEver.fitness + 1e-9
+    );
+  });
+
   it("writes a reproducible run record", () => {
     const run = runEvolution(BASE);
 

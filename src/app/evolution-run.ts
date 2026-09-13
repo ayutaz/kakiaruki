@@ -83,6 +83,8 @@ export interface EvolutionRunResult {
   readonly graphHash: string;
   readonly skeletonWidth: number;
   readonly generations: readonly GenerationStats[];
+  /** 世代ごとの最良個体。世代変化を人が見て確かめるためのリプレイ入力になる。 */
+  readonly bestPerGeneration: readonly BestEver[];
   readonly bestEver: BestEver;
   readonly runRecord: RunRecord;
 }
@@ -149,6 +151,7 @@ export function runEvolution(options: EvolutionRunOptions): EvolutionRunResult {
 
   const world = createPhysicsWorld();
   const generations: GenerationStats[] = [];
+  const bestPerGeneration: BestEver[] = [];
   let population = initialPopulation;
   let bestEver: BestEver | null = null;
 
@@ -167,16 +170,22 @@ export function runEvolution(options: EvolutionRunOptions): EvolutionRunResult {
 
       generations.push(summarizeGeneration(generation, scored, terms));
 
+      let generationBest: BestEver | null = null;
       for (const [index, entry] of scored.entries()) {
-        if (bestEver === null || entry.fitness > bestEver.fitness) {
-          bestEver = {
-            genome: entry.genome,
-            fitness: entry.fitness,
-            generation,
-            terms: terms[index]!,
-            episode: results[index]!
-          };
+        const candidate: BestEver = {
+          genome: entry.genome,
+          fitness: entry.fitness,
+          generation,
+          terms: terms[index]!,
+          episode: results[index]!
+        };
+        if (generationBest === null || candidate.fitness > generationBest.fitness) {
+          generationBest = candidate;
         }
+      }
+      bestPerGeneration.push(generationBest!);
+      if (bestEver === null || generationBest!.fitness > bestEver.fitness) {
+        bestEver = generationBest!;
       }
 
       if (options.disableEvolution !== true) {
@@ -196,6 +205,7 @@ export function runEvolution(options: EvolutionRunOptions): EvolutionRunResult {
     graphHash: creatureGraphHash(options.graph),
     skeletonWidth: width,
     generations,
+    bestPerGeneration,
     bestEver,
     runRecord: createRunRecord({
       graph: options.graph,
