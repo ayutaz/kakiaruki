@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M2 frame time benchmark</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #050c14;
+        color: #e7f0f7;
+        font-family: system-ui, sans-serif;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 16px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      label {
+        font-size: 13px;
+        color: #9fb6c8;
+      }
+      select,
+      button {
+        background: #0f2334;
+        color: #e7f0f7;
+        border: 1px solid #1d3a52;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font: inherit;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        max-width: 960px;
+        border: 1px solid #1d3a52;
+        border-radius: 8px;
+        background: #07131f;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        max-width: 960px;
+        margin: 16px 0;
+      }
+      .metric {
+        background: #0b1a27;
+        border: 1px solid #16293a;
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .metric span {
+        display: block;
+        font-size: 11px;
+        color: #7f9ab0;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .metric strong {
+        font-size: 18px;
+        font-variant-numeric: tabular-nums;
+      }
+      pre {
+        max-width: 960px;
+        background: #0b1a27;
+        border: 1px solid #16293a;
+        border-radius: 8px;
+        padding: 12px;
+        overflow-x: auto;
+        font-size: 12px;
+      }
+      p.note {
+        max-width: 960px;
+        font-size: 13px;
+        color: #9fb6c8;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>M2 frame time benchmark</h1>
+
+    <div class="controls">
+      <label for="population">Population</label>
+      <select id="population">
+        <option value="1">1</option>
+        <option value="8">8</option>
+        <option value="32" selected>32</option>
+      </select>
+
+      <label for="rendered">表示個体数</label>
+      <select id="rendered">
+        <option value="0">0</option>
+        <option value="1">1</option>
+        <option value="8" selected>8</option>
+      </select>
+
+      <label for="speed">速度</label>
+      <select id="speed">
+        <option value="1" selected>x1</option>
+        <option value="2">x2</option>
+        <option value="4">x4</option>
+        <option value="8">x8</option>
+      </select>
+
+      <button id="start" type="button">開始 / 再計測</button>
+      <button id="stop" type="button">停止</button>
+    </div>
+
+    <canvas id="view" width="960" height="360"></canvas>
+
+    <div class="metrics">
+      <div class="metric"><span>frames</span><strong id="frames">0</strong></div>
+      <div class="metric"><span>p50 frame</span><strong id="p50">0 ms</strong></div>
+      <div class="metric"><span>p95 frame</span><strong id="p95">0 ms</strong></div>
+      <div class="metric"><span>p99 frame</span><strong id="p99">0 ms</strong></div>
+      <div class="metric"><span>worst frame</span><strong id="worst">0 ms</strong></div>
+      <div class="metric"><span>physics steps/s</span><strong id="steps">0</strong></div>
+      <div class="metric"><span>creature steps/s</span><strong id="creature-steps">0</strong></div>
+    </div>
+
+    <pre id="summary">{}</pre>
+
+    <p class="note">
+      これは物理と Canvas 2D 描画だけの計測です。Phaser のレンダリング負荷は含みません。
+      計測は前景タブで行い、電源接続状態とブラウザversionを記録してください。
+      30秒以上動かしてから値を読み取ります。
+    </p>
+
+    <script type="module" src="/bench/frame-time.ts"></script>
+  </body>
+</html>
