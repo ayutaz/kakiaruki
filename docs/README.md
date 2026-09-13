@@ -6,7 +6,7 @@
 
 `one-stroke-evolution-web` は、公開されているゲーム『一筆進化』の体験を参考に、Web向けの独立した再現実装が技術的に成立するかを検証するためのプロジェクトです。
 
-現時点では、事前調査とP0技術スパイクに加えて **M1 Simulation基盤を完了**しています。`CreatureGraph` の検証、4〜6ボーンのBody／Joint生成、地面上でのepisode実行、cleanup契約まで作成済みです。複数個体、遺伝的アルゴリズム、一筆入力はまだ実装していません。
+現時点では、事前調査とP0技術スパイクに加えて **M1 Simulation基盤**と **M2 Population評価**（p95 frame timeの計測を除く）を完了しています。`CreatureGraph` の検証、Body／Joint生成、1 World内のレーン分離、Population 1／8／32の評価、cleanup契約まで作成済みです。遺伝的アルゴリズムと一筆入力はまだ実装していません。
 
 ## 現在の結論
 
@@ -15,8 +15,9 @@
 - **決定済み**: 最初から一筆入力を完成させず、固定骨格の物理・関節制御・進化を先に検証する。
 - **確認済み**: Phaser Box2DのTypeScript統合、固定ステップ、2ボーンとRevolute Joint、motor、limitは最小構成で動作する。
 - **確認済み**: 4〜6ボーンの単一個体が10,000 stepを有限値で完走し、100回の生成・cleanupでWorldのshape数が基準へ戻る。
-- **確認済み**: 自動試験77件、型検査、本番ビルドが成功した。
-- **未確認**: 複数個体性能、長時間のWorld再利用、進化によるFitness改善。
+- **確認済み**: 1 World内でPopulation 32を実時間の44倍の速さで評価でき、個体間contactは0件、100世代でshape数が基準へ戻る（headless計測）。
+- **確認済み**: 自動試験116件、型検査、本番ビルドが成功した。
+- **未確認**: ブラウザ前景タブでのp95 frame time、進化によるFitness改善。
 - **未確定**: 製品名、見た目、公開方法、モバイル対応、ランキング、原作に対する再現度。
 - **フォールバック**: 技術スパイクの合格条件を満たせない場合はGodotを再評価する。
 
@@ -46,9 +47,10 @@
 12. [P0完了後の開発計画](12-development-plan.md)
 13. [マイルストーン品質・判断ゲート](13-milestone-quality-and-decision-gates.md)
 14. [M1 Simulation基盤 検証結果](14-m1-simulation-validation.md)
+15. [M2 Population評価と性能 検証結果](15-m2-population-performance.md)
 
 実装計画は `superpowers/plans/` にあります。
 
 ## 次に行うこと
 
-M1は完了しました（[検証結果](14-m1-simulation-validation.md)）。次は [開発計画](12-development-plan.md) の M2 として、1 World内のレーン分離、`PopulationRunner`、表示個体数と評価個体数の分離、Population 1／8／32の性能測定を行います。実測が終わるまで複数個体性能は「未確認」と扱います。
+M2は技術検証済みです（[検証結果](15-m2-population-performance.md)）。**p95 frame timeのブラウザ計測だけが残っています**（手順は同ドキュメント §8）。次は [開発計画](12-development-plan.md) の M3 として、Seed付き疑似乱数、`Genome`、Fitness、選択・交叉・突然変異、進化なし対照群との比較を実装します。
