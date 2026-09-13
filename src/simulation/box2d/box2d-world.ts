@@ -18,6 +18,7 @@ export const CREATURE_CATEGORY = 0x0001;
 export const GROUND_CATEGORY = 0x0002;
 
 const OVERLAP_BOUND = 1e6;
+const ALL_BITS = 0xffffffff;
 
 b2CreateWorldArray();
 
@@ -70,13 +71,18 @@ class Box2DPhysicsWorld implements PhysicsWorld {
   countShapes(): number {
     this.#assertAlive();
     let count = 0;
+    // 既定のquery filterは category 1 / mask 全ビットなので、生物shape（mask=地面のみ）に
+    // 当たらない。cleanup検証では全shapeを数えたいので両方を全ビットにする。
+    const filter = b2DefaultQueryFilter();
+    filter.categoryBits = ALL_BITS;
+    filter.maskBits = ALL_BITS;
     b2World_OverlapAABB(
       this.worldId,
       {
         lowerBound: new b2Vec2(-OVERLAP_BOUND, -OVERLAP_BOUND),
         upperBound: new b2Vec2(OVERLAP_BOUND, OVERLAP_BOUND)
       },
-      b2DefaultQueryFilter(),
+      filter,
       () => {
         count += 1;
         return true;
