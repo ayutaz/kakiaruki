@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createP0PhysicsRig,
   type P0PhysicsRig
-} from "../src/simulation/p0-physics-rig.ts";
+} from "../../src/simulation/p0-physics-rig.ts";
 
 const rigs: P0PhysicsRig[] = [];
 

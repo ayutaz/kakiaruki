@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateMotorSpeed } from "../src/simulation/joint-controller.ts";
+import { calculateMotorSpeed } from "../../src/simulation/joint-controller.ts";
 
 describe("calculateMotorSpeed", () => {
   it("uses the shortest angular error and clamps the requested speed", () => {

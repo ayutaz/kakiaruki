@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { FixedStepRunner } from "../src/simulation/fixed-step-runner.ts";
+import { FixedStepRunner } from "../../src/simulation/fixed-step-runner.ts";
 
 describe("FixedStepRunner", () => {
   it("turns elapsed wall time into explicit fixed simulation steps", () => {

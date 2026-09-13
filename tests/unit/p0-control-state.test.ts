@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createInitialP0ControlState } from "../src/p0-control-state.ts";
+import { createInitialP0ControlState } from "../../src/p0-control-state.ts";
 
 describe("createInitialP0ControlState", () => {
   it("restores every interactive control to the P0 defaults", () => {
