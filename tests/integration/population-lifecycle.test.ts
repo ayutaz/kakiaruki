@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { createSineCommandSource } from "../../src/domain/control/joint-command-source.ts";
+import {
+  createSineCommandSource,
+  createZeroCommandSource
+} from "../../src/domain/control/joint-command-source.ts";
 import { validateCreatureGraph } from "../../src/domain/creature/creature-graph-validation.ts";
 import { createCreature } from "../../src/simulation/box2d/box2d-creature-factory.ts";
 import {
@@ -63,6 +66,40 @@ afterEach(() => {
 });
 
 describe("population lifecycle", () => {
+  it("spawns the whole population on the ground, not past its edge", () => {
+    // レーンは中央から左右へ広がる。地面が足りないと外側の個体が落下し、
+    // 前進量0のまま completed として世代に混ざる。
+    const world = createPhysicsWorld();
+    worlds.push(world);
+    const plan = planForFixture();
+    const clearance = computeSpawnOffset(plan, 0.1);
+    const lanes = planLanes(32, skeletonWidth(plan));
+    const creatures = lanes.map((lane) =>
+      createCreature(world, plan, {
+        origin: { x: clearance.x + lane.origin.x, y: clearance.y + lane.origin.y },
+        groupIndex: lane.groupIndex
+      })
+    );
+    const runner = new PopulationRunner({
+      world,
+      creatures,
+      members: creatures.map(() => ({ commands: createZeroCommandSource() })),
+      options: { durationSeconds: 2 }
+    });
+
+    runner.run();
+
+    const fallen = runner
+      .results()
+      .filter((result) => result.endCenterOfMass.y < -1)
+      .length;
+    expect(fallen).toBe(0);
+
+    for (const creature of creatures) {
+      creature.destroy();
+    }
+  });
+
   it("returns one reused world to its baseline after 100 generations", () => {
     const plan = planForFixture();
     const world = createPhysicsWorld();

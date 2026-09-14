@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_STROKE_GRAPH_OPTIONS } from "../../src/domain/stroke/stroke-graph-builder.ts";
+import { DEFAULT_PHYSICS_WORLD_OPTIONS } from "../../src/simulation/box2d/box2d-world.ts";
+
 import {
   planLanes,
   requiredLaneSpacing,
@@ -72,5 +75,19 @@ describe("requiredLaneSpacing", () => {
 
   it("rejects a non-finite input", () => {
     expect(() => requiredLaneSpacing(Number.NaN, 12)).toThrow(/finite/);
+  });
+});
+
+describe("planLanes against the default ground", () => {
+  it("keeps every lane of a full population on the default ground", () => {
+    // 一筆入力が作れる最大の骨格（最大骨長 × 最大本数）でも地面から出てはいけない。
+    const widest = DEFAULT_STROKE_GRAPH_OPTIONS.maxEdgeLength * DEFAULT_STROKE_GRAPH_OPTIONS.maxEdgeCount;
+    const lanes = planLanes(32, widest);
+
+    for (const lane of lanes) {
+      expect(Math.abs(lane.origin.x) + widest / 2).toBeLessThanOrEqual(
+        DEFAULT_PHYSICS_WORLD_OPTIONS.groundHalfWidth
+      );
+    }
   });
 });
