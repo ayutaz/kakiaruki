@@ -33,7 +33,7 @@
 7. 任意の交差を関節として扱うか、見た目の交差だけにするか。
 8. 単純輪をMVP必須にするか。
 9. 線の太さを物理半径へ反映するか。
-10. Node次数や最大骨数をユーザー設定にするか。
+10. Node次数や最大骨数をユーザー設定にするか。骨数の既定値は D-010 で14本に決めましたが、ユーザー設定にするかは未定です。
 
 ### 進化
 
@@ -109,6 +109,14 @@
 - 状態: **決定済み（M1）**
 - 決定: `CreatureHandle` と `SteppableWorld` を `src/simulation/ports/` に置き、`EpisodeRunner` と `src/domain/` はBox2D adapterを直接参照しない。`tests/unit/layering.test.ts` が推移的依存を機械的に検査する。
 - 理由: headless試験、性能測定、Worker化、Godotへの方針転換を容易にするため（D-005）。
+
+### D-010: 一筆の骨数上限を14本にする
+
+- 状態: **決定済み（M4、ユーザー判断 2026-09-14）**
+- 決定: `DEFAULT_STROKE_GRAPH_OPTIONS.maxEdgeCount` を 10 → **14**。あわせて `DEFAULT_GRAPH_LIMITS` の `maxEdgeCount` 12 → 16、`maxTotalLength` 16 → 24 m。
+- 理由: 上限10本ではキャンバスいっぱいに描くと11〜14本になって拒否され、手動確認の妨げになっていました。性能は制約になっていません（Population 32・headlessで、骨6本 33.2x / 10本 23.1x / 14本 **16.9x** 実時間比）。
+- 影響: 描線の実用上限が約 660 px → 約 930 px（キャンバス幅の約1.5倍）。20世代・Population 32 の学習時間は骨5本で1.6秒、骨12本で **6.0秒**。レーン端は最大 ±446 m（地面1000 mの内側）。
+- 再評価: M5で枝分かれを入れるとき、最大Node次数とあわせて決め直します（[docs/13](13-milestone-quality-and-decision-gates.md) §6）。
 
 ## 4. 次の承認点
 

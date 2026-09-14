@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { validateCreatureGraph } from "../../src/domain/creature/creature-graph-validation.ts";
-import type { CreatureGraph } from "../../src/domain/creature/creature-graph.ts";
+import {
+  DEFAULT_GRAPH_LIMITS,
+  type CreatureGraph
+} from "../../src/domain/creature/creature-graph.ts";
 import {
   buildGraphFromStroke,
   DEFAULT_STROKE_GRAPH_OPTIONS,
@@ -15,6 +18,7 @@ import {
   curveStroke,
   lShapeStroke,
   repeatedPointStroke,
+  bigWaveStroke,
   selfIntersectingStroke,
   shallowWaveStroke,
   straightStroke,
@@ -165,6 +169,34 @@ describe("buildGraphFromStroke", () => {
 
   it("rejects a stroke that is too short to make a bone", () => {
     expect(codesOf(build(tooShortStroke()))).toContain("stroke-too-short");
+  });
+
+  it("keeps every stroke limit inside the creature graph limits", () => {
+    // 一筆側の上限（DEFAULT_STROKE_GRAPH_OPTIONS）と、生物Graphの不変条件
+    // （DEFAULT_GRAPH_LIMITS）は別々に定義されている。前者が後者を超えると、
+    // 変換は成功したのに学習へ渡せないGraphができる。
+    const stroke = DEFAULT_STROKE_GRAPH_OPTIONS;
+
+    expect(stroke.maxEdgeCount).toBeLessThanOrEqual(DEFAULT_GRAPH_LIMITS.maxEdgeCount);
+    expect(stroke.maxEdgeLength * stroke.maxEdgeCount).toBeLessThanOrEqual(
+      DEFAULT_GRAPH_LIMITS.maxTotalLength
+    );
+    expect(stroke.maxEdgeLength).toBeLessThanOrEqual(DEFAULT_GRAPH_LIMITS.maxEdgeLength);
+    expect(stroke.minEdgeLength).toBeGreaterThanOrEqual(DEFAULT_GRAPH_LIMITS.minEdgeLength);
+    expect(stroke.worldShortSide).toBeLessThanOrEqual(
+      DEFAULT_GRAPH_LIMITS.maxCoordinateMagnitude
+    );
+    expect(stroke.boneRadius).toBeGreaterThanOrEqual(DEFAULT_GRAPH_LIMITS.minRadius);
+    expect(stroke.boneRadius).toBeLessThanOrEqual(DEFAULT_GRAPH_LIMITS.maxRadius);
+  });
+
+  it("accepts a stroke that fills the canvas and keeps it inside the graph limits", () => {
+    const result = expectOk(build(bigWaveStroke()));
+
+    expect(result.preview.edges.length).toBe(14);
+    // 変換が通っても、既定のGraph上限で弾かれると学習へ渡せない。
+    // 一筆側の上限と `DEFAULT_GRAPH_LIMITS` は別物なので、両方を満たす必要がある。
+    expect(validateCreatureGraph(result.graph).ok).toBe(true);
   });
 
   it("accepts a shallow wave instead of calling it self intersecting", () => {

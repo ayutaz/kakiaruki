@@ -139,5 +139,8 @@ Viteの500 kB chunk警告は継続中です。M7で分割または受容を判�
 | `EpisodeRunner` の構造 | worldのstepを自分で持つ単一クラス | `EpisodeTracker`（進行とmetrics）と分離。`EpisodeRunner` はtracker + 自前のworld step | 1つのWorldで複数個体を同時に進める `PopulationRunner` と進行規則を共有するため |
 | `CreatureHandle` の定義場所 | `src/simulation/box2d/box2d-creature-factory.ts` | `src/simulation/ports/creature-port.ts` | `EpisodeRunner` と domain がBox2D adapterを推移的にも参照しないようにするため（D-009） |
 | `maxAbsCoordinate()` | 絶対座標の最大値 | `maxDistanceFrom(point)` へ置換 | 上記の暴走検出の変更に伴う |
+| `DEFAULT_GRAPH_LIMITS` の最大骨数 | 12本 | 16本 | 一筆の骨数上限を14本へ上げたため（[D-010](09-risks-open-questions-and-decisions.md)、2026-09-14） |
+| `DEFAULT_GRAPH_LIMITS` の総延長 | 16 m | 24 m | 同上 |
+| `DEFAULT_PHYSICS_WORLD_OPTIONS` の地面半幅 | 200 m | 1000 m | Populationの一部が地面の外に生成されていたため（[docs/17](17-m4-stroke-input-validation.md) §11） |
 
 M1の受入条件の判定はこれらの変更後も変わりません。

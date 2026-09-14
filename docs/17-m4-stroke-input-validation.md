@@ -47,7 +47,7 @@ npm run verify
   -> mergeShortEdges     最小骨長 0.35 m 未満のEdgeを統合
   -> splitLongEdges      最大骨長 1.2 m 超のEdgeを等分
   -> mergeShortEdges     分割後に生じた短Edgeを再統合
-  -> 骨数上限チェック     10本超は理由付きで拒否
+  -> 骨数上限チェック     14本超は理由付きで拒否
   -> CreatureGraph 化     rootは重心に最も近い節点（ID順に依存しない）
   -> validateCreatureGraph 最終検証。落ちたら理由を返す
 ```
@@ -246,7 +246,7 @@ cycle 33: FAILED -> Phaser Box2D did not allocate a world
 
 地面の外に生成された個体は6秒間落下し（終了時 y = −172.7 m）、前進量0のまま `completed` として世代へ混ざっていました。`maxDisplacement` 200 m にわずかに届かないため `invalid` にもならず、**静かに母集団の1/5〜1/3を無駄にしていました**。
 
-修正: 地面の半幅を 200 m → **1000 m**。Population 32 で最大骨格（1.2 m × 10本）を並べても端は ±378 m、そこから `maxDisplacement` 200 m 進んでも地面が続きます。
+修正: 地面の半幅を 200 m → **1000 m**。Population 32 で最大骨格（1.2 m × 14本）を並べても端は ±446 m、そこから `maxDisplacement` 200 m 進んでも地面が続きます。
 
 追加した試験:
 
@@ -258,6 +258,46 @@ cycle 33: FAILED -> Phaser Box2D did not allocate a world
 **配線切断証明**: 地面を200 mへ戻すと、この2件だけが失敗しました。
 
 再測定の結果は [docs/15](15-m2-population-performance.md) §12 と [docs/16](16-m3-evolution-validation.md) §11 に記録しました。**M2・M3の受入条件の判定は変わりません。**
+
+### 原因5: 骨の本数上限10本では、キャンバスいっぱいに描けなかった（設計値）
+
+「複雑なものが描けない」という報告の残り半分です。バグではなく設計値ですが、手動確認の妨げになっていたため、**ユーザー判断として上限を14本へ上げました**（[D-010](09-risks-open-questions-and-decisions.md)）。
+
+| 設定 | 変更前 | 変更後 |
+|---|---:|---:|
+| `DEFAULT_STROKE_GRAPH_OPTIONS.maxEdgeCount` | 10 | **14** |
+| `DEFAULT_GRAPH_LIMITS.maxEdgeCount` | 12 | **16** |
+| `DEFAULT_GRAPH_LIMITS.maxTotalLength` | 16 m | **24 m** |
+
+一筆側の上限と生物Graph側の上限は別々に定義されているため、**両方を上げないと「変換は成功したのに学習へ渡せないGraph」ができます**。この関係を試験で縛りました。
+
+性能の実測（Population 32、6秒episode、headless）:
+
+| 骨数 | 評価の実時間 | 実時間比 |
+|---:|---:|---:|
+| 6本 | 0.181 秒 | 33.2x |
+| 10本 | 0.260 秒 | 23.1x |
+| 12本 | 0.297 秒 | 20.2x |
+| 14本 | 0.354 秒 | **16.9x** |
+
+実用上の描ける長さ（640×420のキャンバス）。`splitLongEdges` が長いEdgeを等分するため、1本あたりは平均 0.9〜1.0 m になります。**上限は描線 約930 px（キャンバス幅の約1.5倍）**です。
+
+| 描いた線 | 長さ | 骨数 | 結果 |
+|---|---:|---:|---|
+| 対角1本 | 655 px | 8 | OK |
+| 波2山 | 930 px | 12 | OK |
+| 波3山 | 1,147 px | 16 | 拒否 |
+
+学習時間は骨数に比例して伸びます。20世代・Population 32 で、**骨5本なら1.6秒、骨12本なら6.0秒**（この間ページは止まります）。
+
+追加した試験:
+
+| 試験 | 何を固定したか |
+|---|---|
+| `keeps every stroke limit inside the creature graph limits` | 一筆側の上限がGraph側の上限を超えない（骨数・総延長・骨長・半径・座標範囲） |
+| `accepts a stroke that fills the canvas and keeps it inside the graph limits` | 骨14本になる線が変換され、かつ `validateCreatureGraph` も通る |
+
+**配線切断証明**: 一筆側を10本へ戻すと後者が失敗、Graph側を12本へ戻しても後者が失敗、総延長を16 mへ戻すと前者が失敗しました。3つの変更すべてが必要です。
 
 ### リプレイで何が見えるか
 
@@ -278,4 +318,5 @@ cycle 33: FAILED -> Phaser Box2D did not allocate a world
 - `b2DestroyWorld` のslot解放漏れは vendor 側の問題で、**回避しただけで直してはいません**。1ページで33個以上のWorldを必要とする実装は今後も失敗します。D-006（1 Worldを再利用）を守る限り起きません。
 - 同じ理由で、1つのテストファイル内でWorldを32個より多く作ることもできません。現在の最大は `tests/integration/evolution-run.test.ts` の17個です。
 - 「世代0 ベスト距離」とリプレイ上段の個体が別物である点は、表示の問題として残っています（上記）。
-- 骨の本数上限10本は変えていません。キャンバスいっぱいに描くと11〜14本になり拒否されます。最大骨数の確定は[docs/13](13-milestone-quality-and-decision-gates.md) §6 のとおりM5の判断項目です。
+- 骨の本数上限は 10 → 14 本へ上げました（原因5）。それでも非常に長い線（描線1,000 px超・骨16本以上）は拒否されます。さらに広げるなら最大骨長 1.2 m の見直しが要ります。
+- 骨14本の学習は20世代で約6秒かかります。ページが止まる時間として長いので、M6では進捗表示か非同期化が要ります。

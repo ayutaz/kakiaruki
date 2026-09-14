@@ -36,7 +36,7 @@ export interface PhysicsWorldOptions {
 
 export const DEFAULT_PHYSICS_WORLD_OPTIONS: PhysicsWorldOptions = {
   gravityY: -10,
-  // Population 32 をレーンへ並べると、最大骨格（1.2 m × 10本）で端が ±378 m になる。
+  // Population 32 をレーンへ並べると、最大骨格（1.2 m × 14本）で端が ±446 m になる。
   // そこから `maxDisplacement` 200 m まで進んでも地面が続くよう、余裕を持たせる。
   // 地面が足りないと外側の個体が落下し、前進量0のまま completed として世代へ混ざる。
   groundHalfWidth: 1000,

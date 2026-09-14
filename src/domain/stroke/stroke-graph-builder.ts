@@ -61,7 +61,7 @@ export const DEFAULT_STROKE_GRAPH_OPTIONS: Omit<StrokeGraphOptions, "viewport"> 
   // docs/04 §5 の初期提案（短辺の2%〜20%）を worldShortSide 6 m に当てはめた値。
   minEdgeLength: 0.35,
   maxEdgeLength: 1.2,
-  maxEdgeCount: 10,
+  maxEdgeCount: 14,
   boneRadius: 0.11,
   closeDistance: 0.35
 };

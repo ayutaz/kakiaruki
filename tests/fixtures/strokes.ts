@@ -113,6 +113,18 @@ export const SHALLOW_WAVE_PATH: ScreenPath = [
 export const shallowWaveStroke = (stepPx = 6): readonly StrokePoint[] =>
   sampleStroke(SHALLOW_WAVE_PATH, stepPx);
 
+/** キャンバスいっぱいに描いた大きな波。骨14本になり、本数上限ちょうどに届く。 */
+export const BIG_WAVE_PATH: ScreenPath = [
+  [40, 380],
+  [190, 90],
+  [350, 380],
+  [600, 120],
+  [620, 300]
+];
+
+export const bigWaveStroke = (stepPx = 6): readonly StrokePoint[] =>
+  sampleStroke(BIG_WAVE_PATH, stepPx);
+
 /** 終端に最小骨長未満の短い突起がある線。短Edge統合が効かないと拒否される。 */
 export const STUB_TAIL_PATH: ScreenPath = [
   [140, 200],
