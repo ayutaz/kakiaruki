@@ -86,8 +86,9 @@
 ### D-006: P1以降は1 Worldを再利用する
 
 - 状態: **決定済み**
-- 決定: Populationを1 World内の分離レーンで評価し、世代ごとにWorldを作り直さない。
+- 決定: Populationを1 World内の分離レーンで評価し、世代ごとにWorldを作り直さない。**開発ページとApplication層も、ページ／実行の寿命で1つのWorldを使い回す**。`runEvolution()` と `replayGenome()` は `world` を受け取れる。
 - 理由: 公開Issueで報告されている複数Worldと再作成のリスクを避ける。
+- 実測（M4、2026-09-14）: 回避ではなく**必須**であることが分かりました。`phaser-box2d@1.1.0` の `b2DestroyWorld` は `b2_worlds[i].inUse` を false へ戻さず、破棄したslotを再利用できません。`B2_MAX_WORLDS` は32なので、Worldを作り直す実装は33回目で `did not allocate a world` になります。詳細は [M4検証結果](17-m4-stroke-input-validation.md) §11。
 
 ### D-007: Phaser Box2Dは配布済みdistを局所adapter経由で使う
 

@@ -110,6 +110,8 @@ npm run dev
 
 この計測ページは物理と Canvas 2D 描画だけを含み、**Phaserのレンダリング負荷は含みません**。
 
+設定を変えるたびに個体を作り直しますが、Worldはページの寿命で1つだけです（2026-09-14 修正、[M4検証結果](17-m4-stroke-input-validation.md) §11）。修正前は設定を32回変えるとWorldを確保できなくなりました。
+
 ## 9. M1記録の訂正
 
 [M1検証結果](14-m1-simulation-validation.md) §6 に `DEFAULT_EPISODE_OPTIONS` の「座標上限 500 m」と記載しましたが、M2で設計を変更しました。

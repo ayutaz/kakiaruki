@@ -96,8 +96,10 @@ npm run dev
 
 1. キャンバスをドラッグして一筆で線を描く。離すと骨格preview（黄色の骨・白丸の節点）が出る。
 2. 自己交差する線、輪、短すぎる線を描いて、**拒否理由と直し方**が読めるか確認する。
-3. 「この形で学習する」で学習し、世代0と最良世代のリプレイを見比べる。
-4. Backspace（消去）、Enter（学習開始）、Escape（取り消し）がキーボードだけで効くか確認する。
+3. 「この形で学習する」で学習する。**学習が終わるとリプレイが自動で再生されます**（§11）。
+4. 「比較する世代」スライダーを端から端まで動かし、世代0と選んだ世代の動きを見比べる。ドラッグの途中でも再生が止まらないこと（§11 原因2の回帰確認）。
+5. Backspace（消去）、Enter（学習開始）、Escape（取り消し）がキーボードだけで効くか確認する。
+6. 描き直して学習、を数回繰り返しても壊れないこと。
 
 ### browser E2E フレームワークについて
 
@@ -136,3 +138,75 @@ npm run dev
 6. `worldShortSide` 6 m と最小/最大骨長 0.35／1.2 m の妥当性。実際に描いて遊んだ後に再調整する。
 7. 手描きGraphでの進化の有効性。M3の実験は `zigzag6` fixtureのみで、手描き形状での改善幅は未測定。
 8. M2から持ち越しの p95 frame time、M3から持ち越しの世代変化の視認確認。
+
+## 11. その後の修正（2026-09-14、§8の手動確認で発見）
+
+§8 の手動確認で「一筆を描いて学習しても、リプレイのプレビューが動かない」という報告がありました。原因を2つ特定し、修正しました。
+
+### 原因1: 学習後に自動再生していなかった（体験の不足）
+
+`learn()` は `prepareReplay()` で**最初の1フレームだけ**を描き、`#playing` は false のままでした。動かすには「最初から再生」を押す必要がありますが、状態表示は「学習完了 …」としか出さず、その導線がありませんでした。
+
+修正: 学習が終わったらそのまま再生する。世代スライダーを動かしたときも再生する。状態表示に、スライダーで世代を比べられることを書く。
+
+### 原因2: Worldを作り直すと32回で確保に失敗する（不具合）
+
+`prepareReplay()` は呼ばれるたびに `createPhysicsWorld()` でWorldを作り直していました。世代スライダーの `input` は1回のドラッグで数十回発火するため、**スライダーを1回動かすだけでWorldを使い切ります**。
+
+`phaser-box2d@1.1.0` の `b2DestroyWorld` は末尾で次のように書かれています。
+
+```js
+const revision = world.revision;
+world = new b2World();          // ローカル変数を差し替えているだけ
+world.worldId = B2_NULL_INDEX;
+world.revision = revision + 1;
+```
+
+`b2_worlds[i]` は書き換わらないため `inUse` が true のまま残り、**破棄したslotは二度と再利用されません**。`B2_MAX_WORLDS` は 32 です。33個目の `b2CreateWorld` は null id を返し、`createPhysicsWorld()` が `Phaser Box2D did not allocate a world` を投げます。
+
+こうなると `prepareReplay()` は例外で中断し、`#runner` は破棄済みWorldを指したままになるため、以後「最初から再生」を押しても何も起きません。ページを再読み込みするまで回復しません。
+
+修正前の実測（headless、World の生成と破棄の反復）:
+
+```text
+cycle 30: ok
+cycle 33: FAILED -> Phaser Box2D did not allocate a world
+```
+
+修正:
+
+| 対象 | 変更 |
+|---|---|
+| `src/app/evolution-run.ts` | `runEvolution()` / `replayGenome()` に `world` を渡せるようにした。渡した場合は作り直さず、破棄もしない（D-006）。渡さない場合の挙動は従来どおり |
+| `bench/stroke-input.ts`、`bench/replay.ts`、`bench/frame-time.ts` | **ページの寿命でWorldを1つだけ**持ち、学習・リプレイ・設定変更では個体だけを破棄する |
+| 同上 | 再生要求が重なっても `requestAnimationFrame` の連鎖が2本にならないようにした（2本走ると再生が倍速になる） |
+
+### 追加した試験
+
+`tests/integration/evolution-run.test.ts`（Red → Green の順）。
+
+| 試験 | 何を固定したか |
+|---|---|
+| `evaluates inside the given world instead of a fresh one` | 重力を変えたWorldを渡すと結果が変わる。=渡したWorldで本当に評価している |
+| `runs more times than Box2D has world slots` | 同じWorldで40回連続実行できる（修正前は33回目で `did not allocate a world`） |
+| `reuses the given world for a replay as well` | `replayGenome` も同じWorldを使い、終了後は地面だけに戻る |
+
+**配線切断証明**: `options.world` を無視する実装（修正前）では、この3件だけが失敗し、他の14件は通りました。1件目は「重力を変えても結果が同じ」、2件目・3件目は「World確保失敗」という、意図どおりの理由で落ちています。
+
+修正後の headless 検証（1つのWorldで学習40回 + スライダー200回相当の再構築）:
+
+```text
+学習 40 回目: shapes=17 (地面1 + リプレイ2個体)
+スライダー200回後: shapes=17
+再生後の移動量: 世代0 1.13 m / 世代2 2.15 m
+片付け後: shapes=1 (地面のみ)
+```
+
+`npm run verify`: Test Files 33 passed / Tests 270 passed、型検査・build ともに成功。
+
+### この修正で未確認のこと
+
+- **ブラウザ上での確認は未実施**です。§8 の手順3・4・6がその確認にあたります。
+- `b2DestroyWorld` のslot解放漏れは vendor 側の問題で、**回避しただけで直してはいません**。1ページで33個以上のWorldを必要とする実装は今後も失敗します。D-006（1 Worldを再利用）を守る限り起きません。
+- 同じ理由で、1つのテストファイル内でWorldを32個より多く作ることもできません。現在の最大は `tests/integration/evolution-run.test.ts` の17個です。
+

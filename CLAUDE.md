@@ -85,7 +85,7 @@ src/simulation/box2d/ … Box2D adapter
 | `src/domain/evolution/` | Seed付き乱数、Genome、Fitness、選択/交叉/変異、世代交代（すべて純粋） |
 | `src/domain/stroke/` | 一筆の点列 → `CreatureGraph` の変換パイプライン（純粋） |
 | `src/game/input/pointer-stroke-source.ts` | DOM Pointer/キーの薄いadapter。判定はdomain側 |
-| `src/app/evolution-run.ts` | GAと物理評価を結ぶApplication層。対照群とリプレイもここ |
+| `src/app/evolution-run.ts` | GAと物理評価を結ぶApplication層。対照群とリプレイもここ。`world` を渡せば作り直さない |
 | `src/simulation/skeleton-plan.ts` | Graph → Bone/Joint の幾何記述（純粋）。Box2Dを知らない |
 | `src/simulation/lane-allocator.ts` | Populationを1 World内のx方向レーンへ配置（純粋） |
 | `src/simulation/episode-tracker.ts` | 1個体のepisode進行。worldのstepは呼び出し側が持つ |
@@ -105,6 +105,7 @@ src/simulation/box2d/ … Box2D adapter
 - `CreateRevoluteJoint` は `referenceAngle` を設定しない。曲がった骨格の初期joint角度を0にするには `b2DefaultRevoluteJointDef()` に設定して `jointDef` で渡す。
 - `CreateCapsule` に `width`/`height` を渡すと全長が `height + 2*radius` になる。`center1`/`center2`/`radius` を明示する。
 - 個体間・自己の衝突は `categoryBits`/`maskBits`（生物 0x0001 は地面 0x0002 としか衝突しない）で構造的に排除している。
+- **`b2DestroyWorld` は world slot を解放しない**（`b2_worlds[i].inUse` が true のまま残る）。`B2_MAX_WORLDS` は32なので、**Worldを作り直す実装は33回目で `did not allocate a world` になります**。M4の開発ページで実際に踏みました（docs/17 §11）。Worldは必ず使い回してください。
 
 ### Phaser Box2D の取り扱い（D-007）
 
@@ -116,7 +117,9 @@ src/simulation/box2d/ … Box2D adapter
 
 `box2d-world.ts` と `p0-physics-rig.ts` は module読み込み時に `b2CreateWorldArray()` を呼ぶ副作用を持ちます。World は `destroy()` で必ず破棄してください（テストでは `afterEach` で回収）。
 
-**World は作り直さず1つを再利用**し、Population は同一World内の分離レーンへ配置します（D-006 / 複数World・再作成の既知Issue回避）。M2で100世代×8個体の反復を確認済みです。
+**World は作り直さず1つを再利用**し、Population は同一World内の分離レーンへ配置します（D-006 / 上記のslot解放漏れ回避）。M2で100世代×8個体の反復を確認済みです。
+
+`runEvolution()` と `replayGenome()` は `world` を受け取れます。**渡した World は破棄されません**（破棄は呼び出し側の責任）。開発ページは学習・リプレイ・設定変更でWorldを作り直さず、個体だけを破棄します。
 
 ### TypeScript の癖
 
