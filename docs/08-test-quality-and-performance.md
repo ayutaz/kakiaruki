@@ -13,7 +13,7 @@ Red
   -> mutation / wiring-disconnection proof
 ```
 
-P0からM4まで、この順序を実行しています。M4時点の自動試験は **33 files / 266 tests** です。
+P0からM7まで、この順序を実行しています。M7時点の自動試験は **38 files / 333 tests** です。
 
 | 層 | files | 主な対象 |
 |---|---:|---|

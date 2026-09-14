@@ -128,4 +128,8 @@
 
 ## 4. 次の承認点
 
-M4まで技術検証済みです（[M4検証結果](17-m4-stroke-input-validation.md)）。人が行う確認が3件、ユーザー判断が1件（browser E2Eフレームワークの導入可否）残っています。次は [開発計画](12-development-plan.md) のM5（戻り線による枝分かれ、Edge単位Undo）です。製品名、アート、ランキング、公開先は引き続き保留できます。
+**M7まで技術検証済みです**（[M7検証結果](20-m7-release-readiness.md)）。実装のマイルストーンは終わり、残るのは人の確認と決定です。
+
+2026-09-14、ユーザーの依頼によりリポジトリを public にし、製品画面を GitHub Pages へ公開しました（<https://ayutaz.github.io/one-stroke-evolution-web/>）。[docs/13](13-milestone-quality-and-decision-gates.md) §7 の「外部hostへのdeploymentまたは一般公開」にあたる操作で、ユーザーの明示的な依頼にもとづきます。
+
+**公開後も未了の項目があります**: 体験品質の確認（[docs/19](19-m6-experience-review.md) §8）、ChromiumとFirefoxでの完走（[docs/20](20-m7-release-readiness.md) §8-1）、**作品名とライセンス**（同 §8-3）。

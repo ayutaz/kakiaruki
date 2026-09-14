@@ -59,7 +59,8 @@ src/
     input/                    DOM Pointer / キーの薄いadapter
   shared/
     vector2.ts
-  main.ts, p0-scene.ts, p0-control-state.ts, style.css   P0デモ画面
+  main.ts, style.css                                    製品画面の配線とスタイル
+  p0-main.ts, p0-scene.ts, p0-control-state.ts          P0デモ（bench/p0-demo.html）
   phaser-box2d.d.ts           vendorに無いTypeScript宣言（D-007）
 
 tests/
