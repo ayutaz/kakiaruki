@@ -20,7 +20,7 @@
 
 | 項目 | 値 |
 |---|---|
-| release candidate | §10 に記載 |
+| release candidate | §10 |
 | 実装計画 | `docs/superpowers/plans/2026-09-14-m7-release-readiness.md` |
 | 長時間run | `bench/soak.ts`（`npm run soak`） |
 | 回帰試験 | `tests/integration/long-run.test.ts` |
@@ -240,11 +240,13 @@ npm run dev   # http://127.0.0.1:5173/
 
 | 項目 | 値 |
 |---|---|
-| commit | `RC_HASH_PLACEHOLDER` |
+| commit | `1356790`（`1356790a986a7f6e5174f72a56eaba7e7be125e7`） |
 | branch | `main` |
 | `npm run verify` | Test Files 38 / Tests 333、型検査・build 成功 |
 | build出力 | `dist/index.html` 4.96 kB、`index-*.css` 3.44 kB、`index-*.js` 216.75 kB（gzip 62.20 kB） |
 | 長時間run | 30.1 分 / 273 周 / 5,460 世代、overall PASS |
+
+このhash以降の変更は、このhashを書き込んだ記録そのものだけです。コードとbuild出力は変わりません。
 
 **これは「技術的に合格した候補」であり、公開して良いという意味ではありません。** 公開は §9 の決定を経てから行います。
 
