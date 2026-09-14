@@ -189,6 +189,22 @@ export const INWARD_SPIRAL_PATH: ScreenPath = [
 export const inwardSpiralStroke = (stepPx = 6): readonly StrokePoint[] =>
   sampleStroke(INWARD_SPIRAL_PATH, stepPx);
 
+/**
+ * 人型相当。胴を下から上へ描き、肩まで戻って左腕、肩へ戻って右腕を伸ばす。
+ * 分岐点が1つ、葉が3つになる。
+ */
+export const HUMANOID_PATH: ScreenPath = [
+  [320, 400],
+  [320, 140],
+  [320, 210],
+  [200, 150],
+  [320, 210],
+  [440, 150]
+];
+
+export const humanoidStroke = (stepPx = 5): readonly StrokePoint[] =>
+  sampleStroke(HUMANOID_PATH, stepPx);
+
 /** 短すぎる線。骨1本にも足りない。 */
 export const tooShortStroke = (): readonly StrokePoint[] =>
   sampleStroke(

@@ -5,8 +5,9 @@ import { normalizeStroke, resampleByDistance } from "../../src/domain/stroke/str
 import { simplifySegment } from "../../src/domain/stroke/stroke-simplify.ts";
 import {
   detectCorners,
-  hasSelfIntersection,
-  isClosedLoop
+  hasCrossingSegments,
+  isClosedLoop,
+  type CrossingSegment
 } from "../../src/domain/stroke/stroke-topology.ts";
 import type { Vector2 } from "../../src/shared/vector2.ts";
 import {
@@ -71,7 +72,20 @@ describe("detectCorners", () => {
   });
 });
 
-describe("hasSelfIntersection", () => {
+/** 折れ線を、隣どうしが端点を共有する線分列にする。 */
+function polylineSegments(points: readonly Vector2[]): CrossingSegment[] {
+  return points.slice(1).map((point, index) => ({
+    a: points[index]!,
+    b: point,
+    endpoints: [`p${index}`, `p${index + 1}`] as const
+  }));
+}
+
+function hasSelfIntersection(points: readonly Vector2[]): boolean {
+  return hasCrossingSegments(polylineSegments(points));
+}
+
+describe("hasCrossingSegments", () => {
   it("is false for a stroke that never crosses itself", () => {
     expect(hasSelfIntersection(prepared(straightStroke()))).toBe(false);
     expect(hasSelfIntersection(prepared(lShapeStroke()))).toBe(false);

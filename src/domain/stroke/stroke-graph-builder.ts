@@ -15,7 +15,11 @@ import {
 import type { StrokePoint, ViewportSize } from "./stroke-point.ts";
 import { simplifySegment } from "./stroke-simplify.ts";
 import { detectRetrace, DEFAULT_RETRACE_OPTIONS } from "./stroke-retrace.ts";
-import { detectCorners, hasSelfIntersection, isClosedLoop } from "./stroke-topology.ts";
+import {
+  detectCorners,
+  hasCrossingSegments,
+  isClosedLoop
+} from "./stroke-topology.ts";
 
 export type StrokeErrorCode =
   | "too-few-points"
@@ -281,13 +285,6 @@ export function buildGraphFromStroke(
       "線の終わりが始まりへ戻っています。輪はまだ扱えません。終点を始点から離して描いてください。"
     );
   }
-  if (hasSelfIntersection(resampled)) {
-    return failure(
-      "self-intersecting",
-      "線が自分自身と交差しています。交差はまだ扱えません。交わらない一筆で描いてください。"
-    );
-  }
-
   // 戻り線で点列を「往路 → 枝1 → 枝2 …」へ切り分ける。戻りがなければ1本の鎖。
   const spans = detectRetrace(resampled, {
     snapDistance: resolved.retraceSnapDistance,
@@ -327,6 +324,22 @@ export function buildGraphFromStroke(
   graph = mergeShortGraphEdges(graph, resolved.minEdgeLength);
   graph = splitLongGraphEdges(graph, resolved.maxEdgeLength);
   graph = mergeShortGraphEdges(graph, resolved.minEdgeLength);
+
+  const built = new Map(graph.nodes.map((node) => [node.id, node.position]));
+  if (
+    hasCrossingSegments(
+      graph.edges.map((edge) => ({
+        a: built.get(edge.nodeA)!,
+        b: built.get(edge.nodeB)!,
+        endpoints: [edge.nodeA, edge.nodeB] as const
+      }))
+    )
+  ) {
+    return failure(
+      "self-intersecting",
+      "線が自分自身と交差しています。交差はまだ扱えません。交わらない一筆で描いてください。"
+    );
+  }
 
   const edgeCount = graph.edges.length;
   if (edgeCount > resolved.maxEdgeCount) {

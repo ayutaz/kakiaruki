@@ -27,6 +27,7 @@ import {
   bigWaveStroke,
   selfIntersectingStroke,
   shallowWaveStroke,
+  humanoidStroke,
   straightStroke,
   stubTailStroke,
   yBranchStroke,
@@ -225,6 +226,16 @@ describe("buildGraphFromStroke", () => {
     // 戻った先が分岐点になり、そこから3本のEdgeが出る。
     expect(Math.max(...degreesOf(result.graph).values())).toBe(3);
     expect(result.graph.edges.length).toBeGreaterThanOrEqual(3);
+    expect(validateCreatureGraph(result.graph).ok).toBe(true);
+  });
+
+  it("builds two arms from a humanoid stroke that goes back twice", () => {
+    const result = expectOk(build(humanoidStroke()));
+    const degrees = [...degreesOf(result.graph).values()];
+
+    // 胴・左腕・右腕の3本が1つの節点から出る。
+    expect(Math.max(...degrees)).toBeGreaterThanOrEqual(3);
+    expect(degrees.filter((degree) => degree === 1)).toHaveLength(3);
     expect(validateCreatureGraph(result.graph).ok).toBe(true);
   });
 
