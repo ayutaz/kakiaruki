@@ -82,7 +82,9 @@ npm run verify  # 自動試験 + 型検査 + 本番ビルド
 
 ## ライセンス
 
-**未定です。** LICENSEファイルを置いていないため、既定では再利用条件が定まっていません。
+[Apache License 2.0](LICENSE) — Copyright 2026 ayutaz
+
+配布物には MIT ライセンスの [Phaser Box2D](https://www.npmjs.com/package/phaser-box2d)（Erin Catto 氏の Box2D v3 をJavaScriptへ移植したもの）が含まれます。詳細は [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) を参照してください。
 
 ## ドキュメント
 

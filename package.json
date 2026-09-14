@@ -2,6 +2,7 @@
   "name": "one-stroke-evolution-web",
   "version": "0.0.0",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "packageManager": "npm@11.4.2",
   "engines": {

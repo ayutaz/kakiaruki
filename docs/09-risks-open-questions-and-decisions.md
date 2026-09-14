@@ -132,4 +132,6 @@
 
 2026-09-14、ユーザーの依頼によりリポジトリを public にし、製品画面を GitHub Pages へ公開しました（<https://ayutaz.github.io/one-stroke-evolution-web/>）。[docs/13](13-milestone-quality-and-decision-gates.md) §7 の「外部hostへのdeploymentまたは一般公開」にあたる操作で、ユーザーの明示的な依頼にもとづきます。
 
-**公開後も未了の項目があります**: 体験品質の確認（[docs/19](19-m6-experience-review.md) §8）、ChromiumとFirefoxでの完走（[docs/20](20-m7-release-readiness.md) §8-1）、**作品名とライセンス**（同 §8-3）。
+ライセンスは 2026-09-14 に **Apache License 2.0**（Copyright 2026 ayutaz）で確定しました。配布物に含まれる Phaser Box2D（MIT）の表示は `THIRD-PARTY-NOTICES.md` に置き、製品画面のfooterからも辿れます。
+
+**公開後も未了の項目があります**: 体験品質の確認（[docs/19](19-m6-experience-review.md) §8）、ChromiumとFirefoxでの完走（[docs/20](20-m7-release-readiness.md) §8-1）、**作品名**（同 §8-3）。
