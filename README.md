@@ -55,9 +55,11 @@ npm run experiment  # 5 Seed × 50世代の進化判定実験（約70秒）
 | URL | 内容 |
 |---|---|
 | `/` | P0の2ボーンデモ（モーター、角度制限、速度の切替） |
-| `/bench/stroke-input.html` | 一筆で描く → 骨格preview → 学習 → リプレイ |
+| `/` | **製品画面**。描く → 学習 → 世代を並べて観察 → 描き直し |
+| `/bench/stroke-input.html` | 一筆で描く → 骨格preview → 学習 → リプレイ（開発用） |
 | `/bench/replay.html` | 固定骨格で学習し、世代0と選んだ世代のベストを並べて再生 |
 | `/bench/frame-time.html` | Population別の p50／p95／p99 frame time 計測 |
+| `/bench/p0-demo.html` | P0技術デモ（2ボーン・Phaser描画） |
 
 ## 人による確認が残っているもの
 

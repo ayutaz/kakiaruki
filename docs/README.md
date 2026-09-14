@@ -6,7 +6,7 @@
 
 `one-stroke-evolution-web` は、公開されているゲーム『一筆進化』の体験を参考に、Web向けの独立した再現実装が技術的に成立するかを検証するためのプロジェクトです。
 
-現時点では、事前調査とP0技術スパイクに加えて **M1 Simulation基盤**、**M2 Population評価**、**M3 進化loop**、**M4 単純な一筆入力**、**M5 枝分かれと編集** を技術検証済みです。描く → 骨格へ変換（枝分かれ可）→ 複数個体を進化 → ベストをリプレイ、までが `bench/stroke-input.html` で一通り動きます。体験統合（M6）、安定化と公開判断（M7）は未着手です。**人が行う確認が残っています**（§次に行うこと）。
+現時点では、事前調査とP0技術スパイクに加えて **M1 Simulation基盤**、**M2 Population評価**、**M3 進化loop**、**M4 単純な一筆入力**、**M5 枝分かれと編集**、**M6 体験統合** を技術検証済みです。描く → 骨格へ変換（枝分かれ可）→ 学習 → 世代を並べて観察 → 描き直し、までを **`index.html`（製品画面）だけで完走できます**。安定化と公開判断（M7）は未着手です。**人が行う体験確認が残っています**（§次に行うこと）。
 
 ## マイルストーンの状態
 
@@ -18,7 +18,7 @@
 | M3 | 進化loop | 技術検証済み | [16](16-m3-evolution-validation.md) |
 | M4 | 単純な一筆入力 | 技術検証済み | [17](17-m4-stroke-input-validation.md) |
 | M5 | 枝分かれと編集 | 技術検証済み | [18](18-m5-branching-validation.md) |
-| M6 | 体験統合 | 未着手 | - |
+| M6 | 体験統合 | 技術検証済み | [19](19-m6-experience-review.md) |
 | M7 | 安定化と公開判断 | 未着手 | - |
 
 ## 現在の結論
@@ -68,23 +68,26 @@
 16. [M3 進化loop 検証結果](16-m3-evolution-validation.md)
 17. [M4 単純な一筆入力 検証結果](17-m4-stroke-input-validation.md)
 18. [M5 枝分かれと編集 検証結果](18-m5-branching-validation.md)
+19. [M6 体験統合 検証結果](19-m6-experience-review.md)
 
 実装計画は `superpowers/plans/` にあります。開発用のページと計測スクリプトは `bench/` にあります（`npm run dev` で `/bench/stroke-input.html` などを開けます）。
 
 ## 次に行うこと
 
-M5まで技術検証済みです（[M5検証結果](18-m5-branching-validation.md)）。
+M6まで技術検証済みです（[M6検証結果](19-m6-experience-review.md)）。製品画面は `npm run dev` 後の `http://127.0.0.1:5173/` です。
 
-**人が行う確認（4件）**
+**人が行う確認**
 
-1. ブラウザでの p95 frame time 計測 — [M2性能記録](15-m2-population-performance.md) §8（`/bench/frame-time.html`）
-2. 世代変化を視認できるかの確認 — [M3検証結果](16-m3-evolution-validation.md) §8（`/bench/replay.html`）
-3. 実ブラウザでのPointer／キーボード操作 — [M4検証結果](17-m4-stroke-input-validation.md) §8（`/bench/stroke-input.html`）
-4. 枝分かれ（なぞって戻る）とCtrl+ZのUndo — [M5検証結果](18-m5-branching-validation.md) §10（`/bench/stroke-input.html`）
+1. **製品画面での体験確認（M6判断ゲート）** — [M6検証結果](19-m6-experience-review.md) §8（`/`）
+2. ブラウザでの p95 frame time 計測 — [M2性能記録](15-m2-population-performance.md) §8（`/bench/frame-time.html`）
+3. 世代変化を視認できるかの確認 — [M3検証結果](16-m3-evolution-validation.md) §8（`/bench/replay.html`）
+4. 実ブラウザでのPointer／キーボード操作 — [M4検証結果](17-m4-stroke-input-validation.md) §8（`/bench/stroke-input.html`）
+5. 枝分かれ（なぞって戻る）とCtrl+ZのUndo — [M5検証結果](18-m5-branching-validation.md) §10（`/bench/stroke-input.html`）
 
 **ユーザー判断が必要**
 
-- browser E2Eフレームワーク（Playwright等）を導入するか（[M4検証結果](17-m4-stroke-input-validation.md) §8）。
-- 閉ループ・自己交差・最大Node次数をMVPへ含めるか（[M5検証結果](18-m5-branching-validation.md) §11）。M5では安全に拒否したままM6へ進みました。
+- browser E2Eフレームワーク（Playwright等）を導入するか（[M6検証結果](19-m6-experience-review.md) §9）。M6の受入条件1項目が未達のままです。
+- 製品画面でPhaserを使うか、Canvas 2Dで足りるか（[M6検証結果](19-m6-experience-review.md) §9）。現在はCanvas 2Dで実装し、build出力が 1,541 kB → 215 kB になりました。
+- 閉ループ・自己交差・最大Node次数をMVPへ含めるか（[M5検証結果](18-m5-branching-validation.md) §11）。
 
-次は [開発計画](12-development-plan.md) の M6 として、描く・学習・観察・リプレイ・描き直しを一続きの画面へまとめます。
+次は [開発計画](12-development-plan.md) の M7 として、長時間run、ChromiumとFirefoxでの完走、依存の再確認、公開判断の材料を揃えます。

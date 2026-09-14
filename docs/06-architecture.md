@@ -73,7 +73,8 @@ bench/           開発用ページと計測スクリプト（製品UIではな�
 
 未作成の層:
 
-- `src/game/scenes/` `src/game/rendering/` `src/ui/`: M6の体験統合で作ります。現在の描画は `bench/` の開発ページがCanvas 2Dで行っています。
+- `src/game/rendering/` `src/ui/`: **M6で作成済み**。製品画面は `index.html` + `src/main.ts` が、状態機械（`src/ui/app-state.ts`）・物理資源（`src/app/observation-session.ts`）・描画（`src/game/rendering/scene-renderer.ts`）を結びます。
+- `src/game/scenes/`: **作っていません**。製品画面の描画はCanvas 2Dで足りているためです。Phaserを使うのは `bench/p0-demo.html` のP0デモだけです。この判断の追認は [M6検証結果](19-m6-experience-review.md) §9 にあります。
 - `src/domain/replay/`: リプレイは `src/app/evolution-run.ts` の `replayGenome` と `RunRecord` で足りているため、独立モジュールにしていません。
 - `tests/e2e/`: browser E2Eフレームワークが未導入のため存在しません（[M4検証結果](17-m4-stroke-input-validation.md) §8）。
 

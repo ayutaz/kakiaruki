@@ -133,7 +133,7 @@ docs/
   16-m3-evolution-validation.md    作成済み
   17-m4-stroke-input-validation.md 作成済み
   18-m5-branching-validation.md    作成済み
-  19-m6-experience-review.md       予定
+  19-m6-experience-review.md       作成済み
   20-m7-release-readiness.md       予定
 ```
 
@@ -163,23 +163,25 @@ docs/
 
 ## 10. 直近のゲート
 
-更新日: 2026-09-14。現在の次工程は **M6** です。
+更新日: 2026-09-14。現在の次工程は **M7** です。
 
 ### 未処理のゲートと確認
 
-M1〜M5は自動試験の受入条件を満たしていますが、人の確認が終わっていません。**自動試験の成功だけで完了扱いにしません**（§3）。
+M1〜M6は自動試験の受入条件をおおむね満たしていますが、人の確認が終わっていません。**自動試験の成功だけで完了扱いにしません**（§3）。M6は受入条件のうち browser E2E の1項目が未達です。
 
 | # | 内容 | 種類 | 参照 |
 |---|---|---|---|
+| 0 | **製品画面での体験確認（M6判断ゲート）** | 体験確認（人） | [docs/19](19-m6-experience-review.md) §8 |
 | 1 | ブラウザ前景タブでの p95 frame time | 実測（人） | [docs/15](15-m2-population-performance.md) §8 |
 | 2 | 世代変化を人が理解できるか（M3判断ゲート） | 体験確認（人） | [docs/16](16-m3-evolution-validation.md) §8 |
 | 3 | 実ブラウザでのPointer／キーボード操作 | 操作確認（人） | [docs/17](17-m4-stroke-input-validation.md) §8 |
 | 4 | 枝分かれ（なぞって戻る）とCtrl+ZのUndo | 操作確認（人） | [docs/18](18-m5-branching-validation.md) §10 |
 | 5 | browser E2Eフレームワークを導入するか | **ユーザー判断** | [docs/17](17-m4-stroke-input-validation.md) §8 |
 | 6 | 閉ループ・自己交差・最大Node次数をMVPへ含めるか | **ユーザー判断** | [docs/18](18-m5-branching-validation.md) §11 |
+| 7 | 製品画面でPhaserを使うか、Canvas 2Dで足りるか | **ユーザー判断** | [docs/19](19-m6-experience-review.md) §9 |
 
 判断ゲートのうち、M2の「Phaser Box2D継続採用」は継続で暫定判定済みです（[docs/12](12-development-plan.md) §6）。M5の判断ゲートは、§6 の規定「安定性または説明可能性が不足する場合は、安全に拒否する仕様でM6へ進む」に従い、**拒否したままM6へ進みました**。
 
-### M6開始時に最初に固定するもの
+### M7開始時に最初に固定するもの
 
-画面の状態遷移（描く → 準備完了 → 学習中 → 観察）、学習中に禁止する操作、速度倍率がepisodeとfitnessの定義を変えないこと、停止・再開・resetの資源、error時の表示。これらを失敗テストとして表現できるまで実装へ進みません。
+長時間runの時間と判定条件（100世代／30分、未処理例外・NaN・資源増加の閾値）、対象ブラウザとversion、性能の合否ライン、`npm audit` の許容範囲、公開判断に必要な確認項目。これらを先に書き出してから測定へ進みます。
