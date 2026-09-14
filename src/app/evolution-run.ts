@@ -68,6 +68,11 @@ export interface EvolutionRunOptions {
   /** true にすると選択・交叉・突然変異を行わず、初期Populationを毎世代再評価する対照群になる。 */
   readonly disableEvolution?: boolean;
   readonly createdAt?: string;
+  /**
+   * 物理World。渡すと作り直さず再利用し、破棄もしない（D-006）。
+   * 破棄は渡した側の責任。長時間開くページでは1つを使い回すこと。
+   */
+  readonly world?: PhysicsWorld;
 }
 
 export interface BestEver {
@@ -149,7 +154,7 @@ export function runEvolution(options: EvolutionRunOptions): EvolutionRunResult {
   const random = createSeededRandom(options.seed);
   const initialPopulation = createInitialPopulation(random, plan.joints.length, evolution);
 
-  const world = createPhysicsWorld();
+  const world = options.world ?? createPhysicsWorld();
   const generations: GenerationStats[] = [];
   const bestPerGeneration: BestEver[] = [];
   let population = initialPopulation;
@@ -193,7 +198,9 @@ export function runEvolution(options: EvolutionRunOptions): EvolutionRunResult {
       }
     }
   } finally {
-    world.destroy();
+    if (options.world === undefined) {
+      world.destroy();
+    }
   }
 
   if (bestEver === null) {
@@ -228,6 +235,8 @@ export interface ReplayOptions {
   readonly weights?: FitnessWeights;
   readonly gains?: ControllerGains;
   readonly createdAt?: string;
+  /** 物理World。渡すと作り直さず再利用し、破棄もしない（D-006）。 */
+  readonly world?: PhysicsWorld;
 }
 
 export interface ReplayResult {
@@ -245,7 +254,7 @@ export function replayGenome(options: ReplayOptions): ReplayResult {
   const plan = planFor(options.graph, skeleton);
   const width = skeletonWidth(plan);
 
-  const world = createPhysicsWorld();
+  const world = options.world ?? createPhysicsWorld();
   try {
     const [result] = evaluatePopulation(world, plan, [options.genome], gains, episode);
     if (!result) {
@@ -266,6 +275,8 @@ export function replayGenome(options: ReplayOptions): ReplayResult {
       })
     };
   } finally {
-    world.destroy();
+    if (options.world === undefined) {
+      world.destroy();
+    }
   }
 }

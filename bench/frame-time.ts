@@ -73,6 +73,8 @@ class FrameTimeBenchmark {
     stepSeconds: STEP_SECONDS,
     maxStepsPerFrame: 240
   });
+  /** ページの寿命で1つだけ持つ物理World（D-006）。 */
+  #world: PhysicsWorld | null = null;
   #session: Session | null = null;
   #frameTimes: number[] = [];
   #physicsSteps = 0;
@@ -113,13 +115,19 @@ class FrameTimeBenchmark {
   }
 
   reset(): void {
-    this.#session?.world.destroy();
+    // 個体だけを破棄し、Worldは使い回す（D-006）。phaser-box2d 1.1.0 の
+    // `b2DestroyWorld` は world slot を解放しないため、作り直すと32回で確保に失敗する。
+    for (const creature of this.#session?.creatures ?? []) {
+      creature.destroy();
+    }
+    this.#session = null;
     this.#frameTimes = [];
     this.#physicsSteps = 0;
     this.#measuredSeconds = 0;
     this.#stepRunner.reset();
 
-    const world = createPhysicsWorld();
+    const world = this.#world ?? createPhysicsWorld();
+    this.#world = world;
     const clearance = computeSpawnOffset(this.#plan, 0.1);
     const creatures = planLanes(this.populationSize, skeletonWidth(this.#plan)).map((lane) =>
       createCreature(world, this.#plan, {

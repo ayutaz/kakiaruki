@@ -18,7 +18,7 @@ import { DEFAULT_EPISODE_OPTIONS } from "../src/simulation/episode-tracker.ts";
 import { FixedStepRunner } from "../src/simulation/fixed-step-runner.ts";
 import { planLanes } from "../src/simulation/lane-allocator.ts";
 import { PopulationRunner } from "../src/simulation/population-runner.ts";
-import type { CreatureSnapshot } from "../src/simulation/ports/creature-port.ts";
+import type { CreatureHandle, CreatureSnapshot } from "../src/simulation/ports/creature-port.ts";
 import {
   buildSkeletonPlan,
   computeSpawnOffset,
@@ -73,9 +73,11 @@ class StrokeInputPage {
   #run: EvolutionRunResult | null = null;
   #world: PhysicsWorld | null = null;
   #runner: PopulationRunner | null = null;
+  #replayCreatures: readonly CreatureHandle[] = [];
   #lanes: ReplayLane[] = [];
   #playing = false;
   #lastStamp = 0;
+  #frameHandle: number | null = null;
 
   constructor() {
     const drawContext = this.#drawCanvas.getContext("2d");
@@ -121,9 +123,10 @@ class StrokeInputPage {
       this.play();
     });
     element<HTMLButtonElement>("pause").addEventListener("click", () => this.pause());
-    element<HTMLInputElement>("generation").addEventListener("input", () =>
-      this.prepareReplay()
-    );
+    element<HTMLInputElement>("generation").addEventListener("input", () => {
+      this.prepareReplay();
+      this.play();
+    });
 
     this.clear();
   }
@@ -134,11 +137,7 @@ class StrokeInputPage {
     this.#graph = null;
     this.#preview = null;
     this.#plan = null;
-    this.#playing = false;
-    this.#world?.destroy();
-    this.#world = null;
-    this.#runner = null;
-    this.#lanes = [];
+    this.#releaseReplay();
     element("errors").textContent = "";
     element("shape").textContent = "-";
     element<HTMLButtonElement>("learn").disabled = true;
@@ -146,6 +145,32 @@ class StrokeInputPage {
       "キャンバスの上でドラッグして一筆で描いてください。Backspaceで消去、Enterで学習。";
     this.#drawScene();
     this.#renderReplay();
+  }
+
+  /**
+   * Worldは作り直さず1つを使い回す（D-006）。
+   * phaser-box2d 1.1.0 の `b2DestroyWorld` は world slot を解放しないため、
+   * 作り直す実装ではページを開いたまま32回で確保に失敗する。
+   */
+  #physicsWorld(): PhysicsWorld {
+    const world = this.#world ?? createPhysicsWorld();
+    this.#world = world;
+    return world;
+  }
+
+  /** リプレイ個体だけを破棄する。Worldと地面はそのまま残す。 */
+  #releaseReplay(): void {
+    this.#playing = false;
+    if (this.#frameHandle !== null) {
+      cancelAnimationFrame(this.#frameHandle);
+      this.#frameHandle = null;
+    }
+    for (const creature of this.#replayCreatures) {
+      creature.destroy();
+    }
+    this.#replayCreatures = [];
+    this.#runner = null;
+    this.#lanes = [];
   }
 
   #convert(): void {
@@ -191,6 +216,9 @@ class StrokeInputPage {
     element("status").textContent = "学習中… この間は画面が止まります";
     await new Promise((resolve) => setTimeout(resolve, 30));
 
+    // 前回のリプレイ個体を残したまま学習すると、同じWorldへ余分なBodyが積み上がる。
+    this.#releaseReplay();
+
     const started = performance.now();
     this.#run = runEvolution({
       graph,
@@ -201,7 +229,8 @@ class StrokeInputPage {
         populationSize: numberValue("population")
       },
       episode: { durationSeconds: 6 },
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      world: this.#physicsWorld()
     });
     const wallSeconds = (performance.now() - started) / 1000;
 
@@ -210,13 +239,16 @@ class StrokeInputPage {
     slider.value = String(this.#run.bestEver.generation);
 
     element("status").textContent =
-      `学習完了 ${wallSeconds.toFixed(1)} 秒 / ${this.#run.generations.length} 世代`;
+      `学習完了 ${wallSeconds.toFixed(1)} 秒 / ${this.#run.generations.length} 世代。` +
+      "下のリプレイを再生します。スライダーで比べる世代を変えられます。";
     element("gen0").textContent =
       `${this.#run.generations[0]!.bestNormalizedForwardProgress.toFixed(2)} 体長`;
     element("best").textContent =
       `${this.#run.bestEver.terms.normalizedForwardProgress.toFixed(2)} 体長 (世代 ${this.#run.bestEver.generation})`;
     element("hash").textContent = this.#run.graphHash;
     this.prepareReplay();
+    // 学習した結果は、押さなくても動いて見えるようにする。
+    this.play();
   }
 
   prepareReplay(): void {
@@ -225,9 +257,8 @@ class StrokeInputPage {
     if (!run || !plan) {
       return;
     }
-    this.#world?.destroy();
+    this.#releaseReplay();
     this.#stepRunner.reset();
-    this.#playing = false;
 
     const generation = Math.min(
       run.bestPerGeneration.length - 1,
@@ -238,7 +269,7 @@ class StrokeInputPage {
       run.bestPerGeneration[generation]!
     ];
 
-    const world = createPhysicsWorld();
+    const world = this.#physicsWorld();
     const clearance = computeSpawnOffset(plan, 0.1);
     const lanePlan = planLanes(chosen.length, skeletonWidth(plan));
     const creatures = lanePlan.map((lane) =>
@@ -257,13 +288,13 @@ class StrokeInputPage {
         snapshot: null
       }
     ];
+    this.#replayCreatures = creatures;
     this.#runner = new PopulationRunner({
       world,
       creatures,
       members: chosen.map((best) => ({ commands: genomeToCommandSource(best.genome) })),
       options: { durationSeconds: 6 }
     });
-    this.#world = world;
     this.#refreshReplay();
   }
 
@@ -273,11 +304,26 @@ class StrokeInputPage {
     }
     this.#playing = true;
     this.#lastStamp = performance.now();
-    requestAnimationFrame((stamp) => this.#frame(stamp));
+    this.#scheduleFrame();
   }
 
   pause(): void {
     this.#playing = false;
+    if (this.#frameHandle !== null) {
+      cancelAnimationFrame(this.#frameHandle);
+      this.#frameHandle = null;
+    }
+  }
+
+  /** 再生要求が重なっても進行は1本に保つ。2本走ると時間が倍速になる。 */
+  #scheduleFrame(): void {
+    if (this.#frameHandle !== null) {
+      cancelAnimationFrame(this.#frameHandle);
+    }
+    this.#frameHandle = requestAnimationFrame((stamp) => {
+      this.#frameHandle = null;
+      this.#frame(stamp);
+    });
   }
 
   #frame(stamp: number): void {
@@ -299,7 +345,7 @@ class StrokeInputPage {
       element("status").textContent = "再生終了。「最初から再生」でもう一度見られます。";
       return;
     }
-    requestAnimationFrame((next) => this.#frame(next));
+    this.#scheduleFrame();
   }
 
   #refreshReplay(): void {

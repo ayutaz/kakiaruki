@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   replayGenome,
@@ -6,6 +6,10 @@ import {
   type EvolutionRunOptions
 } from "../../src/app/evolution-run.ts";
 import { DEFAULT_EVOLUTION_CONFIG } from "../../src/domain/evolution/evolution-engine.ts";
+import {
+  createPhysicsWorld,
+  type PhysicsWorld
+} from "../../src/simulation/box2d/box2d-world.ts";
 import { chain4, zigzag6 } from "../fixtures/creature-graphs.ts";
 
 const BASE = {
@@ -141,5 +145,80 @@ describe("runEvolution", () => {
 
   it("refuses a non positive generation count", () => {
     expect(() => runEvolution({ ...BASE, generations: 0 })).toThrow(/generations/);
+  });
+});
+
+describe("runEvolution with a caller owned world", () => {
+  const worlds: PhysicsWorld[] = [];
+
+  const makeWorld = (
+    options?: Parameters<typeof createPhysicsWorld>[0]
+  ): PhysicsWorld => {
+    const world = createPhysicsWorld(options);
+    worlds.push(world);
+    return world;
+  };
+
+  afterEach(() => {
+    for (const world of worlds.splice(0)) {
+      world.destroy();
+    }
+  });
+
+  it("evaluates inside the given world instead of a fresh one", () => {
+    // 渡したWorldを本当に使っているかは、重力を変えた World を渡して結果が変わることで示す。
+    const earthLike = makeWorld();
+    const floaty = makeWorld({ gravityY: -2 });
+
+    const onEarth = runEvolution({ ...BASE, world: earthLike });
+    const inSpace = runEvolution({ ...BASE, world: floaty });
+
+    expect(inSpace.generations).not.toEqual(onEarth.generations);
+  });
+
+  it("leaves the given world alive and empty", () => {
+    const world = makeWorld();
+
+    const injected = runEvolution({ ...BASE, world });
+
+    expect(injected.generations).toEqual(runEvolution(BASE).generations);
+    expect(world.countShapes()).toBe(1);
+  });
+
+  it("runs more times than Box2D has world slots", () => {
+    // phaser-box2d 1.1.0 の b2DestroyWorld は slot を解放しないため、毎回 World を
+    // 作り直すと 32 回で "did not allocate a world" になる。長時間開いたページでも
+    // 学習を繰り返せることを、この試験で固定する。
+    const world = makeWorld();
+    const tiny = {
+      ...BASE,
+      generations: 1,
+      evolution: { ...DEFAULT_EVOLUTION_CONFIG, populationSize: 4, eliteCount: 1 },
+      episode: { durationSeconds: 0.2 },
+      world
+    } satisfies EvolutionRunOptions;
+
+    for (let index = 0; index < 40; index += 1) {
+      expect(runEvolution(tiny).generations).toHaveLength(1);
+    }
+
+    expect(world.countShapes()).toBe(1);
+  });
+
+  it("reuses the given world for a replay as well", () => {
+    const world = makeWorld();
+    const run = runEvolution({ ...BASE, world });
+
+    const replay = replayGenome({
+      graph: BASE.graph,
+      seed: BASE.seed,
+      genome: run.bestEver.genome,
+      episode: BASE.episode,
+      createdAt: BASE.createdAt,
+      world
+    });
+
+    expect(replay.fitness.fitness).toBeCloseTo(run.bestEver.fitness, 6);
+    expect(world.countShapes()).toBe(1);
   });
 });

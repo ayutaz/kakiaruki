@@ -9,7 +9,10 @@ import { DEFAULT_EPISODE_OPTIONS } from "../src/simulation/episode-tracker.ts";
 import { FixedStepRunner } from "../src/simulation/fixed-step-runner.ts";
 import { planLanes } from "../src/simulation/lane-allocator.ts";
 import { PopulationRunner } from "../src/simulation/population-runner.ts";
-import type { CreatureSnapshot } from "../src/simulation/ports/creature-port.ts";
+import type {
+  CreatureHandle,
+  CreatureSnapshot
+} from "../src/simulation/ports/creature-port.ts";
 import {
   buildSkeletonPlan,
   computeSpawnOffset,
@@ -75,9 +78,11 @@ class ReplayViewer {
   #run: EvolutionRunResult | null = null;
   #world: PhysicsWorld | null = null;
   #runner: PopulationRunner | null = null;
+  #creatures: readonly CreatureHandle[] = [];
   #lanes: Lane[] = [];
   #playing = false;
   #lastStamp = 0;
+  #frameHandle: number | null = null;
 
   constructor() {
     const context = this.#canvas.getContext("2d");
@@ -86,6 +91,31 @@ class ReplayViewer {
     }
     this.#context = context;
     this.#canvas.height = ROW_HEIGHT * 2;
+  }
+
+  /**
+   * Worldは作り直さず1つを使い回す（D-006）。
+   * phaser-box2d 1.1.0 の `b2DestroyWorld` は world slot を解放しないため、
+   * 作り直す実装ではページを開いたまま32回で確保に失敗する。
+   */
+  #physicsWorld(): PhysicsWorld {
+    const world = this.#world ?? createPhysicsWorld();
+    this.#world = world;
+    return world;
+  }
+
+  /** リプレイ個体だけを破棄する。Worldと地面はそのまま残す。 */
+  #releaseCreatures(): void {
+    this.#playing = false;
+    if (this.#frameHandle !== null) {
+      cancelAnimationFrame(this.#frameHandle);
+      this.#frameHandle = null;
+    }
+    for (const creature of this.#creatures) {
+      creature.destroy();
+    }
+    this.#creatures = [];
+    this.#runner = null;
   }
 
   async learn(): Promise<void> {
@@ -98,6 +128,9 @@ class ReplayViewer {
     element("status").textContent = "学習中… この間は画面が止まります";
     await new Promise((resolve) => setTimeout(resolve, 30));
 
+    // 前回のリプレイ個体を残したまま学習すると、同じWorldへ余分なBodyが積み上がる。
+    this.#releaseCreatures();
+
     const started = performance.now();
     this.#run = runEvolution({
       graph: zigzag6,
@@ -108,7 +141,8 @@ class ReplayViewer {
         populationSize: numberValue("population")
       },
       episode: { durationSeconds: numberValue("episode") },
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      world: this.#physicsWorld()
     });
     const wallSeconds = (performance.now() - started) / 1000;
 
@@ -117,9 +151,12 @@ class ReplayViewer {
     slider.value = String(this.#run.bestEver.generation);
 
     element("status").textContent =
-      `学習完了 ${wallSeconds.toFixed(1)} 秒 / ${this.#run.generations.length} 世代`;
+      `学習完了 ${wallSeconds.toFixed(1)} 秒 / ${this.#run.generations.length} 世代。` +
+      "そのまま再生します。スライダーで比べる世代を変えられます。";
     this.#reportStats();
     this.prepare();
+    // 学習した結果は、押さなくても動いて見えるようにする。
+    this.play();
   }
 
   prepare(): void {
@@ -128,9 +165,8 @@ class ReplayViewer {
     if (!run || !plan) {
       return;
     }
-    this.#world?.destroy();
+    this.#releaseCreatures();
     this.#stepRunner.reset();
-    this.#playing = false;
 
     const comparedGeneration = Math.min(
       run.bestPerGeneration.length - 1,
@@ -157,7 +193,7 @@ class ReplayViewer {
       }
     ];
 
-    const world = createPhysicsWorld();
+    const world = this.#physicsWorld();
     const clearance = computeSpawnOffset(plan, 0.1);
     const lanePlan = planLanes(selected.length, skeletonWidth(plan));
     const creatures = lanePlan.map((lane) =>
@@ -174,6 +210,7 @@ class ReplayViewer {
       currentX: creatures[index]!.centerOfMass().x
     }));
 
+    this.#creatures = creatures;
     this.#runner = new PopulationRunner({
       world,
       creatures,
@@ -182,7 +219,6 @@ class ReplayViewer {
       })),
       options: { durationSeconds: numberValue("episode") }
     });
-    this.#world = world;
     this.#refreshSnapshots();
     this.#render();
   }
@@ -193,11 +229,26 @@ class ReplayViewer {
     }
     this.#playing = true;
     this.#lastStamp = performance.now();
-    requestAnimationFrame((stamp) => this.#frame(stamp));
+    this.#scheduleFrame();
   }
 
   pause(): void {
     this.#playing = false;
+    if (this.#frameHandle !== null) {
+      cancelAnimationFrame(this.#frameHandle);
+      this.#frameHandle = null;
+    }
+  }
+
+  /** 再生要求が重なっても進行は1本に保つ。2本走ると時間が倍速になる。 */
+  #scheduleFrame(): void {
+    if (this.#frameHandle !== null) {
+      cancelAnimationFrame(this.#frameHandle);
+    }
+    this.#frameHandle = requestAnimationFrame((stamp) => {
+      this.#frameHandle = null;
+      this.#frame(stamp);
+    });
   }
 
   #frame(stamp: number): void {
@@ -223,7 +274,7 @@ class ReplayViewer {
       element("status").textContent = "再生終了。もう一度見るには「最初から再生」を押してください。";
       return;
     }
-    requestAnimationFrame((next) => this.#frame(next));
+    this.#scheduleFrame();
   }
 
   #refreshSnapshots(): void {
@@ -354,4 +405,7 @@ element<HTMLButtonElement>("play").addEventListener("click", () => {
   viewer.play();
 });
 element<HTMLButtonElement>("pause").addEventListener("click", () => viewer.pause());
-element<HTMLInputElement>("generation").addEventListener("input", () => viewer.prepare());
+element<HTMLInputElement>("generation").addEventListener("input", () => {
+  viewer.prepare();
+  viewer.play();
+});
