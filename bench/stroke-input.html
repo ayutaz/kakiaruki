@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M4 stroke input</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #050c14;
+        color: #e7f0f7;
+        font-family: system-ui, sans-serif;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 4px;
+      }
+      p.lead {
+        margin: 0 0 16px;
+        font-size: 13px;
+        color: #9fb6c8;
+        max-width: 960px;
+        line-height: 1.6;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+        max-width: 960px;
+      }
+      label {
+        font-size: 13px;
+        color: #9fb6c8;
+      }
+      select,
+      button,
+      input[type="range"] {
+        background: #0f2334;
+        color: #e7f0f7;
+        border: 1px solid #1d3a52;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font: inherit;
+      }
+      button.primary {
+        background: #17435f;
+      }
+      button:disabled {
+        opacity: 0.45;
+      }
+      canvas {
+        display: block;
+        border: 1px solid #1d3a52;
+        border-radius: 8px;
+        touch-action: none;
+        max-width: 100%;
+      }
+      #draw {
+        cursor: crosshair;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        max-width: 960px;
+        margin: 16px 0;
+      }
+      .metric {
+        background: #0b1a27;
+        border: 1px solid #16293a;
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .metric span {
+        display: block;
+        font-size: 11px;
+        color: #7f9ab0;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .metric strong {
+        font-size: 15px;
+        font-variant-numeric: tabular-nums;
+      }
+      #status {
+        display: block;
+        margin: 8px 0;
+        font-size: 13px;
+        color: #ffd166;
+      }
+      #errors {
+        display: block;
+        margin: 8px 0 16px;
+        font-size: 13px;
+        color: #e76f51;
+        white-space: pre-line;
+        line-height: 1.7;
+        max-width: 960px;
+      }
+      h2 {
+        font-size: 14px;
+        color: #9fb6c8;
+        margin: 24px 0 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>M4 stroke input</h1>
+    <p class="lead">
+      キャンバスに<strong>一筆</strong>で線を描くと、物理で動かせる骨格へ変換します。
+      黄色が骨、白丸が関節になる節点です。自己交差・輪・短すぎる線は、
+      勝手に別の形へ変えず<strong>理由を表示して拒否</strong>します。
+      Backspaceで消去、Enterで学習開始。
+    </p>
+
+    <canvas id="draw" width="640" height="420"></canvas>
+
+    <span id="status"></span>
+    <span id="errors"></span>
+
+    <div class="controls">
+      <label for="seed">Seed</label>
+      <select id="seed">
+        <option value="1" selected>1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
+
+      <label for="generations">世代数</label>
+      <select id="generations">
+        <option value="10">10</option>
+        <option value="20" selected>20</option>
+        <option value="50">50</option>
+      </select>
+
+      <label for="population">個体数</label>
+      <select id="population">
+        <option value="16">16</option>
+        <option value="32" selected>32</option>
+      </select>
+
+      <button id="learn" class="primary" type="button" disabled>この形で学習する</button>
+      <button id="clear" type="button">消去</button>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><span>形</span><strong id="shape">-</strong></div>
+      <div class="metric"><span>世代0 ベスト距離</span><strong id="gen0">-</strong></div>
+      <div class="metric"><span>best-ever 距離</span><strong id="best">-</strong></div>
+      <div class="metric"><span>graph hash</span><strong id="hash">-</strong></div>
+    </div>
+
+    <h2>リプレイ（上: 世代0のベスト / 下: 選んだ世代のベスト）</h2>
+
+    <div class="controls">
+      <label for="generation">比較する世代</label>
+      <input id="generation" type="range" min="0" max="0" value="0" step="1" />
+      <button id="play" type="button">最初から再生</button>
+      <button id="pause" type="button">一時停止</button>
+    </div>
+
+    <canvas id="replay" width="960" height="360"></canvas>
+
+    <script type="module" src="/bench/stroke-input.ts"></script>
+  </body>
+</html>

@@ -11,9 +11,11 @@ export interface PointerLike {
 /**
  * DOM要素のうち、この adapter が使う部分だけ。テストでは最小のfakeを渡す。
  */
+export type StrokeEventListener = (event: Event) => void;
+
 export interface StrokeInputTarget {
-  addEventListener(type: string, listener: (event: never) => void, options?: unknown): void;
-  removeEventListener(type: string, listener: (event: never) => void): void;
+  addEventListener(type: string, listener: StrokeEventListener, options?: unknown): void;
+  removeEventListener(type: string, listener: StrokeEventListener, options?: unknown): void;
   setPointerCapture?(pointerId: number): void;
   releasePointerCapture?(pointerId: number): void;
   getBoundingClientRect(): { left: number; top: number; width: number; height: number };
@@ -93,11 +95,17 @@ export function bindPointerStroke(
     handlers.onCancel?.();
   };
 
-  const bindings: readonly [string, (event: never) => void][] = [
-    ["pointerdown", onPointerDown as (event: never) => void],
-    ["pointermove", onPointerMove as (event: never) => void],
-    ["pointerup", onPointerUp as (event: never) => void],
-    ["pointercancel", onPointerCancel as (event: never) => void]
+  const asListener =
+    (handler: (event: PointerLike) => void): StrokeEventListener =>
+    (event: Event): void => {
+      handler(event as unknown as PointerLike);
+    };
+
+  const bindings: readonly [string, StrokeEventListener][] = [
+    ["pointerdown", asListener(onPointerDown)],
+    ["pointermove", asListener(onPointerMove)],
+    ["pointerup", asListener(onPointerUp)],
+    ["pointercancel", asListener(onPointerCancel)]
   ];
 
   for (const [type, listener] of bindings) {

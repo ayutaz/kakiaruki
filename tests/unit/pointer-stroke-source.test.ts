@@ -5,6 +5,7 @@ import type { StrokePoint } from "../../src/domain/stroke/stroke-point.ts";
 import {
   bindPointerStroke,
   keyToStrokeCommand,
+  type StrokeEventListener,
   type StrokeInputTarget
 } from "../../src/game/input/pointer-stroke-source.ts";
 
@@ -17,11 +18,11 @@ interface PointerEventLike {
 }
 
 class FakeTarget implements StrokeInputTarget {
-  readonly listeners = new Map<string, ((event: never) => void)[]>();
+  readonly listeners = new Map<string, StrokeEventListener[]>();
   readonly captured: number[] = [];
   readonly released: number[] = [];
 
-  addEventListener(type: string, listener: (event: never) => void): void {
+  addEventListener(type: string, listener: StrokeEventListener): void {
     const existing = this.listeners.get(type);
     if (existing) {
       existing.push(listener);
@@ -30,7 +31,7 @@ class FakeTarget implements StrokeInputTarget {
     }
   }
 
-  removeEventListener(type: string, listener: (event: never) => void): void {
+  removeEventListener(type: string, listener: StrokeEventListener): void {
     const existing = this.listeners.get(type);
     if (!existing) {
       return;
@@ -55,7 +56,7 @@ class FakeTarget implements StrokeInputTarget {
 
   emit(type: string, event: PointerEventLike): void {
     for (const listener of this.listeners.get(type) ?? []) {
-      (listener as (value: PointerEventLike) => void)(event);
+      listener(event as unknown as Event);
     }
   }
 
