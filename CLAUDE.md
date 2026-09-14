@@ -8,7 +8,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 体験の中心は「プレイヤーが一筆で骨格を描く → 同じ形の複数個体に異なる関節制御パラメータを与える → 数秒の物理シミュレーションで移動能力を評価する → GAで世代交代する」。**形態は進化させず、関節の動かし方（controller）だけを進化させます**（D-003）。
 
-現在地点は **M1（Simulation基盤）完了**。`CreatureGraph` の検証、4〜6ボーンのBody/Joint生成、地面上でのepisode実行、cleanup契約までが動きます。複数個体・GA・一筆入力はまだ存在しません。次工程は **M2: Population評価と性能**（1 World内のレーン分離、`PopulationRunner`、Population 1/8/32の実測）です。進捗は `docs/README.md` と `docs/superpowers/plans/` を参照。
+現在地点は **M4（単純な一筆入力）まで技術検証済み**。描く → `CreatureGraph` へ変換 → 1 World内のレーンで複数個体を評価 → GAで世代交代 → ベストをリプレイ、までが動きます。次工程は **M5: 枝分かれと編集**（戻り線、snap、Edge単位Undo）です。
+
+**人が行う確認が3件残っています**（`npm run dev` 後にブラウザで開く）:
+
+| 何を | どこで | 記録先 |
+|---|---|---|
+| p95 frame time の計測 | `/bench/frame-time.html` | `docs/15` §8 |
+| 世代変化を視認できるか | `/bench/replay.html` | `docs/16` §8 |
+| Pointer / キーボード操作 | `/bench/stroke-input.html` | `docs/17` §8 |
+
+進捗は `docs/README.md`、実装計画は `docs/superpowers/plans/` を参照。
 
 ## コマンド
 
@@ -16,13 +26,17 @@ Node.js 24以上 / npm 11以上が必要です（`node_modules` 未作成なら�
 
 ```bash
 npm ci              # lockfile通りの再現インストール
-npm run dev         # http://127.0.0.1:5173/ （strictPort）
+npm run dev         # http://127.0.0.1:5173/ （strictPort）。開発ページは /bench/*.html
 npm run test        # vitest run（環境は node、tests/**/*.test.ts）
 npm run test:watch
 npm run typecheck   # tsc --noEmit
 npm run build       # typecheck + vite build
 npm run verify      # test + build。マイルストーン完了判定の必須ゲート
+npm run bench       # Population 1/8/32 の throughput（headless）
+npm run experiment  # 5 Seed × 50世代の進化判定実験（約70秒）
 ```
+
+**`npm run test` は型検査をしません。** 実装を変えたら必ず `npm run typecheck` も回してください（vitest は型エラーを素通しします）。
 
 単一テスト実行:
 
@@ -67,8 +81,15 @@ Box2D adapter
 | `src/domain/control/joint-controller.ts` | 角度誤差 → motor speed の PD制御。最短角度差を使い clamp する |
 | `src/domain/control/joint-command-source.ts` | 関節指令の port。M3のGenomeがこれを実装する差し替え点 |
 | `src/domain/run/run-record.ts` | `schemaVersion` 付き再現記録。未対応versionは理由付きで拒否 |
+| `src/domain/evolution/` | Seed付き乱数、Genome、Fitness、選択/交叉/変異、世代交代（すべて純粋） |
+| `src/domain/stroke/` | 一筆の点列 → `CreatureGraph` の変換パイプライン（純粋） |
+| `src/game/input/pointer-stroke-source.ts` | DOM Pointer/キーの薄いadapter。判定はdomain側 |
+| `src/app/evolution-run.ts` | GAと物理評価を結ぶApplication層。対照群とリプレイもここ |
 | `src/simulation/skeleton-plan.ts` | Graph → Bone/Joint の幾何記述（純粋）。Box2Dを知らない |
-| `src/simulation/episode-runner.ts` | 1個体1エピソードの固定step実行、metrics、invalid検出 |
+| `src/simulation/lane-allocator.ts` | Populationを1 World内のx方向レーンへ配置（純粋） |
+| `src/simulation/episode-tracker.ts` | 1個体のepisode進行。worldのstepは呼び出し側が持つ |
+| `src/simulation/episode-runner.ts` | 単体評価。tracker + 自前のworld step |
+| `src/simulation/population-runner.ts` | 1 World / N個体の同時評価。描画個体数は結果に影響しない |
 | `src/simulation/fixed-step-runner.ts` | wall time → 固定step変換。上限超過分は破棄して UI freeze を避ける |
 | `src/simulation/ports/` | `CreatureHandle` / `SteppableWorld`。物理実装への依存はここで遮断する |
 | `src/simulation/box2d/` | Box2D adapter。**Box2D APIを呼べるのはこのディレクトリだけ** |
@@ -76,6 +97,13 @@ Box2D adapter
 | `src/p0-scene.ts` | Phaser Scene。P0デモの描画と DOM control の配線のみ |
 
 `tests/unit/layering.test.ts` が「`src/domain/` からPhaser/Box2Dへ推移的にも到達しない」「Box2D importは adapter ディレクトリに限る」を機械的に検査します。新しいモジュールを足すときはこの試験を壊さないでください。
+
+### Box2D で踏んだ落とし穴（M1〜M2で確認済み）
+
+- `b2World_GetCounters()` は**空実装**。資源リーク検出は `b2World_OverlapAABB` の残存shape数で行う（D-008）。その際 query filter の category/mask を全ビットにしないと生物shapeに当たらない。
+- `CreateRevoluteJoint` は `referenceAngle` を設定しない。曲がった骨格の初期joint角度を0にするには `b2DefaultRevoluteJointDef()` に設定して `jointDef` で渡す。
+- `CreateCapsule` に `width`/`height` を渡すと全長が `height + 2*radius` になる。`center1`/`center2`/`radius` を明示する。
+- 個体間・自己の衝突は `categoryBits`/`maskBits`（生物 0x0001 は地面 0x0002 としか衝突しない）で構造的に排除している。
 
 ### Phaser Box2D の取り扱い（D-007）
 
