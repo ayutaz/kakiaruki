@@ -63,6 +63,26 @@ describe("layering", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps the screen state machine free of Phaser, Box2D and the DOM", () => {
+    // 画面の判断を純粋に保つ。ここが汚れるとブラウザ無しで試験できなくなる。
+    const uiFiles = listTypeScriptFiles(join(sourceRoot, "ui"));
+    expect(uiFiles.length).toBeGreaterThan(0);
+
+    const offenders = uiFiles
+      .map((filePath) => ({
+        file: relative(projectRoot, filePath),
+        packages: [...reachableExternalPackages(filePath)].filter((name) =>
+          name.startsWith("phaser")
+        ),
+        dom: /\b(document|window|HTMLElement|CanvasRenderingContext2D|requestAnimationFrame)\b/.test(
+          readFileSync(filePath, "utf8")
+        )
+      }))
+      .filter((entry) => entry.packages.length > 0 || entry.dom);
+
+    expect(offenders).toEqual([]);
+  });
+
   it("keeps the simulation core independent of the Box2D adapter", () => {
     const coreModules = ["episode-runner.ts", "skeleton-plan.ts", "fixed-step-runner.ts"];
     const offenders = coreModules

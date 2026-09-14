@@ -5,65 +5,117 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Phaser 4とPhaser Box2Dによる一筆進化Web版のP0技術検証"
+      content="一筆で描いた骨格に、関節の動かし方を進化で学習させるWeb実験"
     />
-    <title>One Stroke Evolution Web - P0</title>
+    <title>一筆で描いて、動きを学ばせる</title>
   </head>
   <body>
     <main class="shell">
       <header class="hero">
-        <p class="eyebrow">P0 TECHNICAL SPIKE</p>
-        <h1>2本の骨と、ひとつの関節。</h1>
-        <p>
-          Phaser 4で描画し、Phaser Box2Dを固定ステップで進めています。
-          モーターと角度制限を切り替えて、物理配線の差を確認できます。
+        <p class="eyebrow">ONE STROKE · EVOLUTION</p>
+        <h1>一筆で描いて、動きを学ばせる。</h1>
+        <p id="lead">
+          キャンバスに一筆で生きものの骨格を描いてください。線をなぞって戻ると枝分かれになります。
+          描いた形はそのままに、<strong>関節の動かし方だけ</strong>を世代交代で探します。
         </p>
       </header>
 
-      <section class="workbench" aria-label="物理技術検証">
-        <div id="game" class="canvas-frame" aria-label="Box2D技術検証キャンバス"></div>
+      <section class="stage" aria-label="作業領域">
+        <div class="canvas-frame">
+          <canvas
+            id="stage"
+            width="960"
+            height="520"
+            tabindex="0"
+            aria-label="描画と観察のキャンバス"
+          ></canvas>
+        </div>
 
         <aside class="panel">
-          <div class="metric">
-            <span>状態</span>
-            <strong id="status">初期化中</strong>
-          </div>
-          <div class="metric">
-            <span>関節角度</span>
-            <strong id="joint-angle">0.000 rad</strong>
-          </div>
-          <div class="metric">
-            <span>目標角度</span>
-            <strong id="target-angle">0.000 rad</strong>
+          <p id="status" role="status" aria-live="polite">読み込み中…</p>
+          <p id="errors" role="alert" aria-live="assertive"></p>
+
+          <div class="metrics">
+            <div class="metric"><span>形</span><strong id="shape">-</strong></div>
+            <div class="metric"><span>世代0 のベスト</span><strong id="gen0">-</strong></div>
+            <div class="metric"><span>いちばん進んだ個体</span><strong id="best">-</strong></div>
+            <div class="metric"><span>形のID</span><strong id="hash">-</strong></div>
           </div>
 
-          <div class="controls">
-            <button id="motor-toggle" type="button" aria-pressed="true">
-              モーター: ON
-            </button>
-            <button id="limit-toggle" type="button" aria-pressed="true">
-              角度制限: ON
-            </button>
-            <label for="speed">シミュレーション速度</label>
-            <select id="speed">
-              <option value="1">x1</option>
-              <option value="2">x2</option>
-              <option value="4">x4</option>
-              <option value="8">x8</option>
-            </select>
-            <button id="reset" class="secondary" type="button">初期状態へ戻す</button>
-          </div>
+          <fieldset class="group">
+            <legend>描く</legend>
+            <div class="controls">
+              <button id="undo" type="button" accesskey="z">骨を1本戻す</button>
+              <button id="clear" type="button" accesskey="d">全部消す</button>
+            </div>
+            <p class="note">Ctrl+Z で1本戻す / Backspace で全部消す</p>
+          </fieldset>
 
-          <p class="note">
-              水色は固定骨、黄色は動的骨です。角度制限ONではおおむね±0.35 rad付近に留まり、OFFでは広い振幅を追従します。
-          </p>
+          <fieldset class="group">
+            <legend>学習する</legend>
+            <div class="controls">
+              <label for="generations">世代数</label>
+              <select id="generations">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+              </select>
+
+              <label for="population">個体数</label>
+              <select id="population">
+                <option value="16">16</option>
+                <option value="32" selected>32</option>
+              </select>
+
+              <label for="seed">乱数</label>
+              <select id="seed">
+                <option value="1" selected>1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+            <button id="learn" class="primary" type="button" accesskey="l" disabled>
+              この形で学習する（Enter）
+            </button>
+          </fieldset>
+
+          <fieldset class="group" id="observe-group">
+            <legend>観察する</legend>
+            <div class="controls">
+              <label for="generation">世代</label>
+              <input id="generation" type="range" min="0" max="0" value="0" step="1" />
+              <output id="generation-value">0</output>
+            </div>
+            <div class="controls">
+              <label for="speed">速さ</label>
+              <select id="speed">
+                <option value="1" selected>x1</option>
+                <option value="2">x2</option>
+                <option value="4">x4</option>
+                <option value="8">x8</option>
+              </select>
+
+              <label for="shown">並べる世代</label>
+              <select id="shown">
+                <option value="2" selected>2</option>
+                <option value="4">4</option>
+                <option value="6">6</option>
+                <option value="8">8</option>
+              </select>
+            </div>
+            <div class="controls">
+              <button id="play" type="button" accesskey="p">最初から再生</button>
+              <button id="pause" type="button">一時停止</button>
+            </div>
+            <p class="note">縦線は1体長ごとの目盛りです。</p>
+          </fieldset>
         </aside>
       </section>
 
       <footer>
-        <span>Phaser 4.2.1</span>
-        <span>Phaser Box2D 1.1.0</span>
+        <span>公開された体験を参考にした独自実装</span>
         <span>fixed dt 1/60 s</span>
+        <span><a href="/bench/p0-demo.html">P0技術デモ</a></span>
       </footer>
     </main>
     <script type="module" src="/src/main.ts"></script>

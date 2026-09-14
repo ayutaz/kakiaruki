@@ -61,6 +61,7 @@ h1 {
   line-height: 1.8;
 }
 
+.stage,
 .workbench {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
@@ -73,7 +74,7 @@ h1 {
 
 .canvas-frame {
   min-width: 0;
-  min-height: 560px;
+  min-height: 520px;
   background: #07131f;
 }
 
@@ -195,5 +196,98 @@ footer {
   .panel {
     border-top: 1px solid #173047;
     border-left: 0;
+  }
+}
+
+/* --- 製品画面（M6） --- */
+
+.stage {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+#stage {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+#stage:focus-visible {
+  outline: 2px solid #ffd166;
+  outline-offset: -2px;
+}
+
+.panel .group {
+  margin: 0 0 18px;
+  padding: 12px 14px 16px;
+  border: 1px solid #173047;
+  border-radius: 12px;
+}
+
+.panel .group legend {
+  padding: 0 6px;
+  color: #9eb2c6;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+}
+
+.panel .group[hidden] {
+  display: none;
+}
+
+.panel .group .controls {
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.panel .group .controls label {
+  margin-top: 0;
+}
+
+.panel .group button {
+  margin-top: 12px;
+}
+
+#status {
+  margin: 0 0 8px;
+  color: #ffd166;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+#errors {
+  margin: 0 0 12px;
+  color: #e76f51;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+#errors:empty {
+  display: none;
+}
+
+#generation {
+  width: 140px;
+}
+
+#generation-value {
+  min-width: 2ch;
+  color: #9eb2c6;
+  font-variant-numeric: tabular-nums;
+}
+
+footer a {
+  color: inherit;
+}
+
+@media (max-width: 900px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel {
+    border-top: 1px solid #173047;
+    border-left: none;
   }
 }
