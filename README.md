@@ -1,4 +1,6 @@
-# 一筆で描いて、動きを学ばせる
+# カキアルキ
+
+**描いた線が、歩きかたを覚える。**
 
 ### ▶ 遊ぶ: **<https://ayutaz.github.io/one-stroke-evolution-web/>**
 
@@ -83,6 +85,8 @@ npm run verify  # 自動試験 + 型検査 + 本番ビルド
 ## ライセンス
 
 [Apache License 2.0](LICENSE) — Copyright 2026 ayutaz
+
+作品名は「カキアルキ」（Kakiaruki）です。原作とは別の独立した作品として、独自の名称を使っています。
 
 配布物には MIT ライセンスの [Phaser Box2D](https://www.npmjs.com/package/phaser-box2d)（Erin Catto 氏の Box2D v3 をJavaScriptへ移植したもの）が含まれます。詳細は [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) を参照してください。
 

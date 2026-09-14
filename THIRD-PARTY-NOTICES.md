@@ -1,6 +1,6 @@
 # サードパーティ表示
 
-このプロジェクトの配布物（`dist/` および <https://ayutaz.github.io/one-stroke-evolution-web/> で配信されるJavaScript）には、次のソフトウェアのコードが含まれています。
+「カキアルキ」の配布物（`dist/` および <https://ayutaz.github.io/one-stroke-evolution-web/> で配信されるJavaScript）には、次のソフトウェアのコードが含まれています。
 
 ---
 

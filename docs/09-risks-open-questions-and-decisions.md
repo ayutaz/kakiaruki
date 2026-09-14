@@ -134,4 +134,6 @@
 
 ライセンスは 2026-09-14 に **Apache License 2.0**（Copyright 2026 ayutaz）で確定しました。配布物に含まれる Phaser Box2D（MIT）の表示は `THIRD-PARTY-NOTICES.md` に置き、製品画面のfooterからも辿れます。
 
-**公開後も未了の項目があります**: 体験品質の確認（[docs/19](19-m6-experience-review.md) §8）、ChromiumとFirefoxでの完走（[docs/20](20-m7-release-readiness.md) §8-1）、**作品名**（同 §8-3）。
+作品名は 2026-09-14 に **「カキアルキ」（Kakiaruki）** で確定しました。「描き」＋「歩き」の造語で、原作名の要素を含みません。
+
+**公開後も未了の項目があります**: 体験品質の確認（[docs/19](19-m6-experience-review.md) §8）、ChromiumとFirefoxでの完走（[docs/20](20-m7-release-readiness.md) §8-1）。
