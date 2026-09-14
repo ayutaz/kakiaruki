@@ -130,7 +130,7 @@
 
 **M7まで技術検証済みです**（[M7検証結果](20-m7-release-readiness.md)）。実装のマイルストーンは終わり、残るのは人の確認と決定です。
 
-2026-09-14、ユーザーの依頼によりリポジトリを public にし、製品画面を GitHub Pages へ公開しました（<https://ayutaz.github.io/one-stroke-evolution-web/>）。[docs/13](13-milestone-quality-and-decision-gates.md) §7 の「外部hostへのdeploymentまたは一般公開」にあたる操作で、ユーザーの明示的な依頼にもとづきます。
+2026-09-14、ユーザーの依頼によりリポジトリを public にし、製品画面を GitHub Pages へ公開しました（<https://ayutaz.github.io/kakiaruki/>）。[docs/13](13-milestone-quality-and-decision-gates.md) §7 の「外部hostへのdeploymentまたは一般公開」にあたる操作で、ユーザーの明示的な依頼にもとづきます。
 
 ライセンスは 2026-09-14 に **Apache License 2.0**（Copyright 2026 ayutaz）で確定しました。配布物に含まれる Phaser Box2D（MIT）の表示は `THIRD-PARTY-NOTICES.md` に置き、製品画面のfooterからも辿れます。
 

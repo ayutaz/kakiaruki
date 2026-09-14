@@ -257,14 +257,26 @@ npm run dev   # http://127.0.0.1:5173/
 
 | 項目 | 値 |
 |---|---|
-| 公開URL | <https://ayutaz.github.io/one-stroke-evolution-web/> |
+| 公開URL | <https://ayutaz.github.io/kakiaruki/> |
 | リポジトリ | public（それまでは private） |
 | 公開方法 | `main` への push で GitHub Actions がbuildして配信（`.github/workflows/deploy.yml`） |
 | 公開前の関門 | `npm run verify`（自動試験 + 型検査 + build）。落ちたら公開されない |
 | 公開対象 | 製品画面（`index.html`）のみ。`bench/` の開発ページは配信しません |
 | 確認 | HTML・JS・CSS がいずれも200。`<title>` と asset のパスを確認 |
 
-vite の `base` を相対パスにしてあります。リポジトリ名のサブパス配下でも、ルート直下でも同じ成果物が動きます。
+vite の `base` を相対パスにしてあります。リポジトリ名のサブパス配下でも、ルート直下でも同じ成果物が動きます。**リポジトリ名を変えてもビルド設定を触らずに済みます。**
+
+### リポジトリ名の変更（2026-09-14）
+
+作品名を「カキアルキ」に決めたあと、リポジトリ名を `one-stroke-evolution-web` → **`kakiaruki`** へ変更しました。旧名は原作の公開ページのスラッグ（`one-stroke-evo`）に近く、独自の作品として識別しづらかったためです。
+
+| | 変更前 | 変更後 |
+|---|---|---|
+| リポジトリ | `ayutaz/one-stroke-evolution-web` | `ayutaz/kakiaruki` |
+| 公開URL | `https://ayutaz.github.io/one-stroke-evolution-web/` | **`https://ayutaz.github.io/kakiaruki/`** |
+| package名 | `one-stroke-evolution-web` | `kakiaruki` |
+
+GitHubは旧URLから新URLへリダイレクトしますが、**恒久的な保証はありません**。共有するときは新しいURLを使ってください。
 
 **公開した時点で未了だったもの**（§8、§9）:
 

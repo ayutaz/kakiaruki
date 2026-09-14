@@ -2,9 +2,9 @@
 
 **描いた線が、歩きかたを覚える。**
 
-### ▶ 遊ぶ: **<https://ayutaz.github.io/one-stroke-evolution-web/>**
+### ▶ 遊ぶ: **<https://ayutaz.github.io/kakiaruki/>**
 
-[![Deploy to GitHub Pages](https://github.com/ayutaz/one-stroke-evolution-web/actions/workflows/deploy.yml/badge.svg)](https://github.com/ayutaz/one-stroke-evolution-web/actions/workflows/deploy.yml)
+[![Deploy to GitHub Pages](https://github.com/ayutaz/kakiaruki/actions/workflows/deploy.yml/badge.svg)](https://github.com/ayutaz/kakiaruki/actions/workflows/deploy.yml)
 
 キャンバスに一筆で生きものの骨格を描くと、その形のまま「関節の動かし方」を進化で探します。世代が進むにつれて、無秩序にもがいていた個体が、歩いたり跳ねたり転がったりして前へ進むようになります。
 
