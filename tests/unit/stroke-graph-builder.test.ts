@@ -11,7 +11,13 @@ import {
   type StrokeGraphResult
 } from "../../src/domain/stroke/stroke-graph-builder.ts";
 import type { StrokePoint } from "../../src/domain/stroke/stroke-point.ts";
-import { angleOf, distance, subtract, wrapSignedRadians } from "../../src/shared/vector2.ts";
+import {
+  angleOf,
+  distance,
+  subtract,
+  wrapSignedRadians,
+  type Vector2
+} from "../../src/shared/vector2.ts";
 import {
   STROKE_VIEWPORT,
   closedLoopStroke,
@@ -23,6 +29,7 @@ import {
   shallowWaveStroke,
   straightStroke,
   stubTailStroke,
+  yBranchStroke,
   tooShortStroke,
   zigzagStroke
 } from "../fixtures/strokes.ts";
@@ -38,6 +45,15 @@ function expectOk(result: StrokeGraphResult) {
   return result;
 }
 
+function degreesOf(graph: CreatureGraph): Map<string, number> {
+  const counts = new Map(graph.nodes.map((node) => [node.id, 0]));
+  for (const edge of graph.edges) {
+    counts.set(edge.nodeA, (counts.get(edge.nodeA) ?? 0) + 1);
+    counts.set(edge.nodeB, (counts.get(edge.nodeB) ?? 0) + 1);
+  }
+  return counts;
+}
+
 function codesOf(result: StrokeGraphResult): string[] {
   return result.ok ? [] : result.errors.map((error) => error.code);
 }
@@ -49,9 +65,41 @@ function edgeLengths(graph: CreatureGraph): number[] {
   );
 }
 
+/**
+ * 鎖状のGraphを端から辿った座標列。
+ * 枝分かれ対応で node 配列の順番は経路順ではなくなったため、接続を辿って並べ直す。
+ */
+function orderedPositions(graph: CreatureGraph): Vector2[] {
+  const neighbours = new Map<string, string[]>(graph.nodes.map((node) => [node.id, []]));
+  for (const edge of graph.edges) {
+    neighbours.get(edge.nodeA)!.push(edge.nodeB);
+    neighbours.get(edge.nodeB)!.push(edge.nodeA);
+  }
+  const start = graph.nodes.find((node) => neighbours.get(node.id)!.length === 1);
+  if (!start) {
+    throw new Error("graph has no endpoint to walk from");
+  }
+  const at = new Map(graph.nodes.map((node) => [node.id, node.position]));
+  const order: Vector2[] = [];
+  let previous: string | null = null;
+  let current: string | null = start.id;
+  while (current !== null) {
+    order.push(at.get(current)!);
+    const next: string | undefined = neighbours
+      .get(current)!
+      .find((candidate) => candidate !== previous);
+    previous = current;
+    current = next ?? null;
+  }
+  if (order.length !== graph.nodes.length) {
+    throw new Error("graph is not a single chain");
+  }
+  return order;
+}
+
 /** 隣り合うEdgeのなす角が閾値を超える節点の数。 */
 function sharpCornerCount(graph: CreatureGraph, threshold = 0.5): number {
-  const positions = graph.nodes.map((node) => node.position);
+  const positions = orderedPositions(graph);
   let count = 0;
   for (let index = 1; index < positions.length - 1; index += 1) {
     const incoming = angleOf(subtract(positions[index]!, positions[index - 1]!));
@@ -169,6 +217,20 @@ describe("buildGraphFromStroke", () => {
 
   it("rejects a stroke that is too short to make a bone", () => {
     expect(codesOf(build(tooShortStroke()))).toContain("stroke-too-short");
+  });
+
+  it("builds a branch from a stroke that goes back on itself", () => {
+    const result = expectOk(build(yBranchStroke()));
+
+    // 戻った先が分岐点になり、そこから3本のEdgeが出る。
+    expect(Math.max(...degreesOf(result.graph).values())).toBe(3);
+    expect(result.graph.edges.length).toBeGreaterThanOrEqual(3);
+    expect(validateCreatureGraph(result.graph).ok).toBe(true);
+  });
+
+  it("keeps a stroke without a retrace as a chain", () => {
+    expect(Math.max(...degreesOf(expectOk(build(zigzagStroke())).graph).values())).toBe(2);
+    expect(Math.max(...degreesOf(expectOk(build(lShapeStroke())).graph).values())).toBe(2);
   });
 
   it("keeps every stroke limit inside the creature graph limits", () => {

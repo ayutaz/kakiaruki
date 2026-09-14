@@ -1,6 +1,10 @@
 import { distance, type Vector2 } from "../../shared/vector2.ts";
 import { validateCreatureGraph } from "../creature/creature-graph-validation.ts";
 import type { CreatureEdge, CreatureGraph, CreatureNode } from "../creature/creature-graph.ts";
+import {
+  mergeShortGraphEdges,
+  splitLongGraphEdges
+} from "../creature/graph-edit.ts";
 
 import {
   normalizeStroke,
@@ -10,6 +14,7 @@ import {
 } from "./stroke-normalize.ts";
 import type { StrokePoint, ViewportSize } from "./stroke-point.ts";
 import { simplifySegment } from "./stroke-simplify.ts";
+import { detectRetrace, DEFAULT_RETRACE_OPTIONS } from "./stroke-retrace.ts";
 import { detectCorners, hasSelfIntersection, isClosedLoop } from "./stroke-topology.ts";
 
 export type StrokeErrorCode =
@@ -51,6 +56,10 @@ export interface StrokeGraphOptions extends NormalizeOptions {
   readonly maxEdgeCount: number;
   readonly boneRadius: number;
   readonly closeDistance: number;
+  /** 戻り線を往路と同じ位置とみなす距離 [m]。 */
+  readonly retraceSnapDistance: number;
+  /** 戻りと認めるのに必要な最小の長さ [m]。 */
+  readonly minRetraceLength: number;
 }
 
 export const DEFAULT_STROKE_GRAPH_OPTIONS: Omit<StrokeGraphOptions, "viewport"> = {
@@ -63,7 +72,9 @@ export const DEFAULT_STROKE_GRAPH_OPTIONS: Omit<StrokeGraphOptions, "viewport"> 
   maxEdgeLength: 1.2,
   maxEdgeCount: 14,
   boneRadius: 0.11,
-  closeDistance: 0.35
+  closeDistance: 0.35,
+  retraceSnapDistance: DEFAULT_RETRACE_OPTIONS.snapDistance,
+  minRetraceLength: DEFAULT_RETRACE_OPTIONS.minRetraceLength
 };
 
 export type StrokeGraphResult =
@@ -94,68 +105,140 @@ function buildNodePoints(
   return nodePoints;
 }
 
-/** 最大骨長を超えるEdgeを等分する。 */
-function splitLongEdges(nodePoints: readonly Vector2[], maxEdgeLength: number): Vector2[] {
-  const result: Vector2[] = [nodePoints[0]!];
-  for (let index = 1; index < nodePoints.length; index += 1) {
-    const from = nodePoints[index - 1]!;
-    const to = nodePoints[index]!;
-    const length = distance(from, to);
-    const parts = Math.max(1, Math.ceil(length / maxEdgeLength));
-    for (let part = 1; part <= parts; part += 1) {
-      result.push({
-        x: from.x + ((to.x - from.x) * part) / parts,
-        y: from.y + ((to.y - from.y) * part) / parts
-      });
-    }
-  }
-  return result;
-}
-
-/** 最小骨長に満たないEdgeを隣へ統合する。ゼロ長Edgeを残さないための処理。 */
-function mergeShortEdges(nodePoints: readonly Vector2[], minEdgeLength: number): Vector2[] {
-  const result = [...nodePoints];
-  let changed = true;
-
-  while (changed && result.length > 2) {
-    changed = false;
-    for (let index = 1; index < result.length; index += 1) {
-      if (distance(result[index - 1]!, result[index]!) >= minEdgeLength) {
-        continue;
-      }
-      // 端のEdgeが短い場合は端点を残し、内側の節点を落とす。
-      const removeIndex = index === result.length - 1 ? index - 1 : index;
-      if (removeIndex === 0 || removeIndex === result.length - 1) {
-        break;
-      }
-      result.splice(removeIndex, 1);
-      changed = true;
-      break;
-    }
-  }
-  return result;
-}
-
 /** docs/04 §6: rootはID順ではなく、重心に最も近い節点から決める。 */
-function chooseRootIndex(nodePoints: readonly Vector2[]): number {
+function chooseRootNodeId(nodes: readonly CreatureNode[]): string {
   let sumX = 0;
   let sumY = 0;
-  for (const point of nodePoints) {
-    sumX += point.x;
-    sumY += point.y;
+  for (const node of nodes) {
+    sumX += node.position.x;
+    sumY += node.position.y;
   }
-  const centre: Vector2 = { x: sumX / nodePoints.length, y: sumY / nodePoints.length };
+  const centre: Vector2 = { x: sumX / nodes.length, y: sumY / nodes.length };
 
-  let bestIndex = 0;
+  let bestId = nodes[0]!.id;
   let bestDistance = Number.POSITIVE_INFINITY;
-  for (const [index, point] of nodePoints.entries()) {
-    const candidate = distance(point, centre);
+  for (const node of nodes) {
+    const candidate = distance(node.position, centre);
     if (candidate < bestDistance - 1e-12) {
       bestDistance = candidate;
-      bestIndex = index;
+      bestId = node.id;
     }
   }
-  return bestIndex;
+  return bestId;
+}
+
+/** 点列を折れ曲がりで区切り、節点の座標列にする。 */
+function runToNodePoints(
+  run: readonly Vector2[],
+  options: StrokeGraphOptions
+): readonly Vector2[] {
+  const corners = detectCorners(run, options.cornerTurnRadians);
+  return buildNodePoints(run, corners, options.simplifyTolerance);
+}
+
+/** 線分 a-b 上で point に最も近い点。 */
+function closestOnSegment(point: Vector2, a: Vector2, b: Vector2): Vector2 {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared === 0) {
+    return a;
+  }
+  const t = Math.min(1, Math.max(0, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSquared));
+  return { x: a.x + dx * t, y: a.y + dy * t };
+}
+
+/**
+ * 枝が分かれる位置に接続先のNodeを用意する。
+ * 近くに既存Nodeがあればそれを使い、無ければ最も近いEdgeを分割して分岐Nodeを作る。
+ */
+class BranchingGraphBuilder {
+  readonly #nodes: CreatureNode[] = [];
+  readonly #edges: CreatureEdge[] = [];
+  readonly #radius: number;
+  #nextNode = 0;
+  #nextEdge = 0;
+
+  constructor(radius: number) {
+    this.#radius = radius;
+  }
+
+  addNode(position: Vector2): string {
+    const id = `n${this.#nextNode}`;
+    this.#nextNode += 1;
+    this.#nodes.push({ id, position });
+    return id;
+  }
+
+  connect(fromId: string, toId: string): void {
+    const id = `e${this.#nextEdge}`;
+    this.#nextEdge += 1;
+    this.#edges.push({ id, nodeA: fromId, nodeB: toId, radius: this.#radius });
+  }
+
+  /** 座標列を鎖として足す。`fromId` を指定するとその節点から伸ばす。 */
+  appendChain(points: readonly Vector2[], fromId: string | null): void {
+    let previousId = fromId ?? this.addNode(points[0]!);
+    for (const position of points.slice(fromId === null ? 1 : 1)) {
+      const id = this.addNode(position);
+      this.connect(previousId, id);
+      previousId = id;
+    }
+  }
+
+  /** 分岐位置に最も近い接続先を返す。必要ならEdgeを分割する。 */
+  attachmentFor(position: Vector2, snapDistance: number): string {
+    let bestNodeId: string | null = null;
+    let bestNodeDistance = Number.POSITIVE_INFINITY;
+    for (const node of this.#nodes) {
+      const candidate = distance(node.position, position);
+      if (candidate < bestNodeDistance) {
+        bestNodeDistance = candidate;
+        bestNodeId = node.id;
+      }
+    }
+    if (bestNodeId !== null && bestNodeDistance <= snapDistance) {
+      return bestNodeId;
+    }
+
+    let bestEdgeIndex = -1;
+    let bestEdgeDistance = Number.POSITIVE_INFINITY;
+    let bestFoot: Vector2 = position;
+    for (const [index, edge] of this.#edges.entries()) {
+      const a = this.#positionOf(edge.nodeA);
+      const b = this.#positionOf(edge.nodeB);
+      const foot = closestOnSegment(position, a, b);
+      const candidate = distance(foot, position);
+      if (candidate < bestEdgeDistance) {
+        bestEdgeDistance = candidate;
+        bestEdgeIndex = index;
+        bestFoot = foot;
+      }
+    }
+    if (bestEdgeIndex < 0) {
+      return bestNodeId ?? this.addNode(position);
+    }
+
+    // Edgeの途中から枝を出すため、その位置で1本を2本へ割る。
+    const edge = this.#edges[bestEdgeIndex]!;
+    const middleId = this.addNode(bestFoot);
+    this.#edges.splice(bestEdgeIndex, 1);
+    this.connect(edge.nodeA, middleId);
+    this.connect(middleId, edge.nodeB);
+    return middleId;
+  }
+
+  build(): CreatureGraph {
+    return {
+      nodes: [...this.#nodes],
+      edges: [...this.#edges],
+      rootNodeId: chooseRootNodeId(this.#nodes)
+    };
+  }
+
+  #positionOf(id: string): Vector2 {
+    return this.#nodes.find((node) => node.id === id)!.position;
+  }
 }
 
 /**
@@ -205,42 +288,53 @@ export function buildGraphFromStroke(
     );
   }
 
-  const corners = detectCorners(resampled, resolved.cornerTurnRadians);
-  let nodePoints = buildNodePoints(resampled, corners, resolved.simplifyTolerance);
-  nodePoints = mergeShortEdges(nodePoints, resolved.minEdgeLength);
-  nodePoints = splitLongEdges(nodePoints, resolved.maxEdgeLength);
-  nodePoints = mergeShortEdges(nodePoints, resolved.minEdgeLength);
+  // 戻り線で点列を「往路 → 枝1 → 枝2 …」へ切り分ける。戻りがなければ1本の鎖。
+  const spans = detectRetrace(resampled, {
+    snapDistance: resolved.retraceSnapDistance,
+    minRetraceLength: resolved.minRetraceLength
+  });
 
-  if (nodePoints.length < 2) {
+  const builder = new BranchingGraphBuilder(resolved.boneRadius);
+  let runStart = 0;
+  for (const [index, span] of [...spans, null].entries()) {
+    const runEnd = span === null ? resampled.length - 1 : span.start;
+    const run = resampled.slice(runStart, runEnd + 1);
+    const previous = index === 0 ? null : spans[index - 1]!;
+
+    if (run.length >= 2) {
+      const nodePoints = runToNodePoints(run, resolved);
+      if (previous === null) {
+        builder.appendChain(nodePoints, null);
+      } else {
+        const branchPoint = resampled[previous.branchIndex]!;
+        const attachId = builder.attachmentFor(branchPoint, resolved.minEdgeLength / 2);
+        builder.appendChain(nodePoints, attachId);
+      }
+    }
+    if (span !== null) {
+      runStart = span.end;
+    }
+  }
+
+  let graph = builder.build();
+  if (graph.edges.length === 0) {
     return failure(
       "stroke-too-short",
       "線が短すぎて骨を作れません。もっと長く描いてください。"
     );
   }
 
-  const edgeCount = nodePoints.length - 1;
+  graph = mergeShortGraphEdges(graph, resolved.minEdgeLength);
+  graph = splitLongGraphEdges(graph, resolved.maxEdgeLength);
+  graph = mergeShortGraphEdges(graph, resolved.minEdgeLength);
+
+  const edgeCount = graph.edges.length;
   if (edgeCount > resolved.maxEdgeCount) {
     return failure(
       "too-many-edges",
       `骨が ${edgeCount} 本になり、上限の ${resolved.maxEdgeCount} 本を超えます。もっと短いか、単純な形で描いてください。`
     );
   }
-
-  const nodes: CreatureNode[] = nodePoints.map((position, index) => ({
-    id: `n${index}`,
-    position
-  }));
-  const edges: CreatureEdge[] = Array.from({ length: edgeCount }, (_unused, index) => ({
-    id: `e${index}`,
-    nodeA: `n${index}`,
-    nodeB: `n${index + 1}`,
-    radius: resolved.boneRadius
-  }));
-  const graph: CreatureGraph = {
-    nodes,
-    edges,
-    rootNodeId: nodes[chooseRootIndex(nodePoints)]!.id
-  };
 
   const validated = validateCreatureGraph(graph, {
     minEdgeLength: resolved.minEdgeLength,
@@ -262,15 +356,16 @@ export function buildGraphFromStroke(
     };
   }
 
+  const positions = new Map(graph.nodes.map((node) => [node.id, node.position]));
   return {
     ok: true,
     graph,
     preview: {
-      nodes: nodes.map((node) => ({ id: node.id, position: node.position })),
-      edges: edges.map((edge, index) => ({
+      nodes: graph.nodes.map((node) => ({ id: node.id, position: node.position })),
+      edges: graph.edges.map((edge) => ({
         id: edge.id,
-        a: nodePoints[index]!,
-        b: nodePoints[index + 1]!
+        a: positions.get(edge.nodeA)!,
+        b: positions.get(edge.nodeB)!
       }))
     }
   };
