@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { runEvolution, type EvolutionRunOptions } from "../../src/app/evolution-run.ts";
 import { validateCreatureGraph } from "../../src/domain/creature/creature-graph-validation.ts";
+import { removeLastEdge } from "../../src/domain/creature/graph-edit.ts";
 import { DEFAULT_EVOLUTION_CONFIG } from "../../src/domain/evolution/evolution-engine.ts";
 import {
   buildGraphFromStroke,
@@ -11,6 +12,7 @@ import type { StrokePoint } from "../../src/domain/stroke/stroke-point.ts";
 import { buildSkeletonPlan } from "../../src/simulation/skeleton-plan.ts";
 import {
   STROKE_VIEWPORT,
+  humanoidStroke,
   lShapeStroke,
   selfIntersectingStroke,
   zigzagStroke
@@ -55,6 +57,48 @@ describe("stroke to evolution", () => {
       expect(plan.joints).toHaveLength(preview.edges.length - 1);
       expect(plan.joints).toHaveLength(preview.nodes.length - 2);
     }
+  });
+
+  it("turns a branch node of degree d into d - 1 joints", () => {
+    const { graph, preview } = graphOf(humanoidStroke());
+    const validated = validateCreatureGraph(graph);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) {
+      return;
+    }
+    const plan = buildSkeletonPlan(validated.graph);
+
+    const degrees = new Map(graph.nodes.map((node) => [node.id, 0]));
+    for (const edge of graph.edges) {
+      degrees.set(edge.nodeA, degrees.get(edge.nodeA)! + 1);
+      degrees.set(edge.nodeB, degrees.get(edge.nodeB)! + 1);
+    }
+    const expectedJoints = [...degrees.values()]
+      .map((degree) => Math.max(0, degree - 1))
+      .reduce((total, count) => total + count, 0);
+
+    expect(plan.bones).toHaveLength(preview.edges.length);
+    expect(plan.joints).toHaveLength(expectedJoints);
+    expect(Math.max(...degrees.values())).toBeGreaterThanOrEqual(3);
+  });
+
+  it("learns from a hand drawn humanoid with two arms", () => {
+    const run = runEvolution(evolutionOptions(humanoidStroke()));
+
+    expect(run.generations).toHaveLength(4);
+    expect(run.generations.every((stats) => stats.invalidCount === 0)).toBe(true);
+    expect(Number.isFinite(run.bestEver.fitness)).toBe(true);
+  });
+
+  it("keeps a branching drawing valid after an edge is undone", () => {
+    const { graph } = graphOf(humanoidStroke());
+
+    const undone = removeLastEdge(graph);
+
+    expect(undone.edges).toHaveLength(graph.edges.length - 1);
+    expect(validateCreatureGraph(undone).ok).toBe(true);
+    // 同じ入力をやり直せば同じGraphに戻る。
+    expect(removeLastEdge(graphOf(humanoidStroke()).graph)).toEqual(undone);
   });
 
   it("learns from a hand drawn L shape", () => {

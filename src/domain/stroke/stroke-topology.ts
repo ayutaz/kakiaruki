@@ -97,8 +97,6 @@ function segmentsCross(a1: Vector2, a2: Vector2, b1: Vector2, b2: Vector2): bool
 export interface CrossingSegment {
   readonly a: Vector2;
   readonly b: Vector2;
-  /** 端点の識別子。これを共有する線分どうしは隣接とみなし、交差から除く。 */
-  readonly endpoints: readonly [string, string];
 }
 
 /**
@@ -107,16 +105,15 @@ export interface CrossingSegment {
  * 戻り線は同じ線を重ねてなぞるため、点列のまま交差を見ると必ず誤検出になる
  * （重なった2本の折れ線は、re-samplingのずれで何度も交わる）。
  * 骨格を組み立てた後の線分どうしで判定する。
+ *
+ * 端点を共有する骨に特別扱いは要りません。共有点は相手の直線上にあるので外積が
+ * ちょうど0になり、`segmentsCross` の「両端が厳密に反対側」を満たさないためです。
  */
 export function hasCrossingSegments(segments: readonly CrossingSegment[]): boolean {
   for (let i = 0; i < segments.length; i += 1) {
     for (let j = i + 1; j < segments.length; j += 1) {
       const left = segments[i]!;
       const right = segments[j]!;
-      const shared = left.endpoints.some((id) => right.endpoints.includes(id));
-      if (shared) {
-        continue;
-      }
       if (segmentsCross(left.a, left.b, right.a, right.b)) {
         return true;
       }

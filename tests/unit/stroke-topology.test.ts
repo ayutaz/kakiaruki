@@ -74,11 +74,7 @@ describe("detectCorners", () => {
 
 /** 折れ線を、隣どうしが端点を共有する線分列にする。 */
 function polylineSegments(points: readonly Vector2[]): CrossingSegment[] {
-  return points.slice(1).map((point, index) => ({
-    a: points[index]!,
-    b: point,
-    endpoints: [`p${index}`, `p${index + 1}`] as const
-  }));
+  return points.slice(1).map((point, index) => ({ a: points[index]!, b: point }));
 }
 
 function hasSelfIntersection(points: readonly Vector2[]): boolean {

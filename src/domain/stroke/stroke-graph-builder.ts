@@ -330,8 +330,7 @@ export function buildGraphFromStroke(
     hasCrossingSegments(
       graph.edges.map((edge) => ({
         a: built.get(edge.nodeA)!,
-        b: built.get(edge.nodeB)!,
-        endpoints: [edge.nodeA, edge.nodeB] as const
+        b: built.get(edge.nodeB)!
       }))
     )
   ) {
