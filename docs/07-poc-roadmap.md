@@ -68,7 +68,7 @@ Phaser 4、Phaser Box2D、TypeScript、Viteの組み合わせが実プロジェ�
 - [x] 全個体の初期条件が同一。
 - [x] 表示個体数0、1、8でFitness結果が許容誤差内で一致（実際は**完全一致**）。
 - [x] 100世代相当の生成・破棄で資源増加が頭打ちになる（shape数がbaselineへ復帰）。
-- [x] 対象PCでPopulation 32が少なくとも実時間相当以上に進む（headlessで**実時間の44倍**）。
+- [x] 対象PCでPopulation 32が少なくとも実時間相当以上に進む（headlessで**実時間の37倍**）。
 - [ ] ブラウザ前景タブでの p95 frame time。**未計測**（[M2性能記録](15-m2-population-performance.md) §8）。
 
 詳細は [M1検証結果](14-m1-simulation-validation.md) と [M2性能記録](15-m2-population-performance.md) を参照してください。
@@ -93,7 +93,7 @@ Phaser 4、Phaser Box2D、TypeScript、Viteの組み合わせが実プロジェ�
 
 - [x] 同一Seedの再試行が許容誤差内で一致（全世代の統計とGenome列まで**完全一致**）。
 - [x] MutationまたはSelectionの結線を切ると、改善試験が失敗する。
-- [x] 複数Seedで、進化群が対照群よりFitness中央値を改善する（5 Seedで 17.91 vs 4.17）。
+- [x] 複数Seedで、進化群が対照群よりFitness中央値を改善する（5 Seedで 17.46 vs 4.17）。
 - [x] ベスト個体を再シミュレーションできる（元の評価値と 1e-6 以内で一致）。
 - [x] Godot切替ゲートをこの時点で評価する（[docs/03](03-feasibility-and-engine-decision.md) §6。切替を示す結果なし）。
 - [ ] 世代変化を人が理解できるか。**未確認**（[M3検証結果](16-m3-evolution-validation.md) §8）。

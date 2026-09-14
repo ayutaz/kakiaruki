@@ -92,7 +92,9 @@ TypeScript 6／Vitest 4への一時的な切替も試しましたが、この環
 
 ## 8. Build結果と残課題
 
-production buildのJavaScriptは約1,541 kB、gzip後約403 kBでした。Viteの500 kB chunk警告が出ていますが、P0の成立判定を妨げるものではありません。公開版ではPhaser／Box2Dの遅延読込またはcode splittingを検討します。
+production buildのJavaScriptは約1,541 kB、gzip後約403 kBでした。Viteの500 kB chunk警告が出ていますが、P0の成立判定を妨げるものではありません。
+
+**この警告はM6で解消しました。** 製品画面をCanvas 2Dにして Phaser を読み込まなくなったため、217 kB（gzip 62 kB）になっています（[docs/20](20-m7-release-readiness.md) §6-4）。Phaserを使うのは開発用のP0デモだけです。
 
 依存導入時の脆弱性報告は0件でした。一方、推移依存にdeprecated扱いのESLint 9系warningがありました。P0コードから直接使ってはいませんが、upstream更新時に再確認します。
 
@@ -118,8 +120,8 @@ production buildのJavaScriptは約1,541 kB、gzip後約403 kBでした。Vite�
 | 1 | 4〜6ボーンの `CreatureGraph` fixture | **M1で実施**（[docs/14](14-m1-simulation-validation.md) §6） |
 | 2 | 1 World内のPopulation分離レーン | **M2で実施**（[docs/15](15-m2-population-performance.md) §7） |
 | 3 | 世代ごとのBody／Joint cleanupと100世代相当の資源監視 | **M1・M2で実施**。shape数がbaselineへ復帰 |
-| 4 | Population 1／8／32のthroughput測定 | **M2で実施**。Population 32 で実時間の44倍（headless） |
+| 4 | Population 1／8／32のthroughput測定 | **M2で実施**。Population 32 で実時間の37倍（headless、[docs/20](20-m7-release-readiness.md) §6-3） |
 | 5 | 表示個体数がsimulation結果へ影響しないことの試験 | **M2で実施**。0／1／8で完全一致 |
-| 6 | 背景tab復帰時のaccumulator処理 | **未実施**。M6の体験統合で扱う |
-| 7 | build chunk分割の要否判断 | **未実施**。M7で判断。警告は継続中 |
+| 6 | 背景tab復帰時のaccumulator処理 | **M6で実施**。1フレームのstep数に上限を置き、30秒の空白でも2.5秒ぶん以上を消費しない（[docs/19](19-m6-experience-review.md) §6） |
+| 7 | build chunk分割の要否判断 | **解消**。M6で製品画面からPhaserを外し、1,541 kB → 217 kB（gzip 62 kB）。警告は出なくなった（[docs/20](20-m7-release-readiness.md) §6-4） |
 

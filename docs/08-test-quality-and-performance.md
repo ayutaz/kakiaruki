@@ -77,7 +77,7 @@ fast-check等の導入は、M5で入力の組合せが増えた時点で再検�
 
 **状態: フレームワーク未導入。ユーザー判断を待っています**（[M4検証結果](17-m4-stroke-input-validation.md) §8）。
 
-M4時点では、Pointerイベントの座標変換・capture・多重Pointer・dispose、キー写像を **fake targetを使ったnode上の自動試験**で検証しています。実ブラウザでの確認は人が行います。
+M7時点でも、Pointerイベントの座標変換・capture・多重Pointer・dispose、キー写像を **fake targetを使ったnode上の自動試験**で検証しています。実ブラウザでの確認は人が行います（E2Eフレームワークは未導入）。
 
 導入した場合に対象とするもの:
 

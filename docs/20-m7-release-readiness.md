@@ -250,7 +250,30 @@ npm run dev   # http://127.0.0.1:5173/
 
 **これは「技術的に合格した候補」であり、公開して良いという意味ではありません。** 公開は §9 の決定を経てから行います。
 
-## 11. 未確認事項と持ち越し
+## 11. 公開（2026-09-14）
+
+ユーザーの明示的な依頼により、リポジトリを public にし、製品画面を GitHub Pages へ公開しました。[docs/13](13-milestone-quality-and-decision-gates.md) §7 の「外部hostへのdeploymentまたは一般公開」にあたる操作です。
+
+| 項目 | 値 |
+|---|---|
+| 公開URL | <https://ayutaz.github.io/one-stroke-evolution-web/> |
+| リポジトリ | public（それまでは private） |
+| 公開方法 | `main` への push で GitHub Actions がbuildして配信（`.github/workflows/deploy.yml`） |
+| 公開前の関門 | `npm run verify`（自動試験 + 型検査 + build）。落ちたら公開されない |
+| 公開対象 | 製品画面（`index.html`）のみ。`bench/` の開発ページは配信しません |
+| 確認 | HTML・JS・CSS がいずれも200。`<title>` と asset のパスを確認 |
+
+vite の `base` を相対パスにしてあります。リポジトリ名のサブパス配下でも、ルート直下でも同じ成果物が動きます。
+
+**公開した時点で未了だったもの**（§8、§9）:
+
+- 体験品質の確認（[docs/19](19-m6-experience-review.md) §8）
+- ChromiumとFirefoxでの完走（§8-1）
+- **作品名とライセンス**（§8-3）。LICENSEファイルは置いていません
+
+公開は「技術的に動く状態のものを見られるようにした」であって、体験品質の承認でも、権利面の確定でもありません。
+
+## 12. 未確認事項と持ち越し
 
 1. **ブラウザ（Chromium / Firefox）での完走**（§8-1）。
 2. **体験品質の確認**（§8-2）。M6の判断ゲート。
