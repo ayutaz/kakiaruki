@@ -204,9 +204,78 @@ cycle 33: FAILED -> Phaser Box2D did not allocate a world
 
 `npm run verify`: Test Files 33 passed / Tests 270 passed、型検査・build ともに成功。
 
+### 原因3: まっすぐな線を「自己交差」と誤判定していた（不具合）
+
+「複雑な形が描けない」という報告から見つかりました。
+
+`segmentsCross` は外積の符号で左右を判定していましたが、`(d1 > 0) !== (d2 > 0)` という書き方では **外積がちょうど0の点を「負の側」として数えます**。一直線に並ぶ点列では外積が 0 と ±1e-17（丸め誤差）に割れるため、**交差していない直線部分が交差と読まれます**。
+
+実測（xが単調に増える＝定義上けっして自己交差しない線を3000本）:
+
+| 判定式 | 誤って拒否した線 |
+|---|---:|
+| 修正前 `(d1 > 0) !== (d2 > 0)` | 244 / 3000（**8.1%**） |
+| 符号0を除外（epsilon 0） | 16 / 3000（0.5%） |
+| 符号0を除外 + epsilon 1e-9 | **0 / 3000** |
+
+修正: 両端が**厳密に反対側**にあるときだけ交差とする（`sign(d1) * sign(d2) < 0`）。一直線上（符号0）は交差ではありません。さらに、丸め誤差が0をまたぐ場合のために `COLLINEAR_EPSILON = 1e-9`（直線から約 1e-8 m のずれに相当）を置きました。
+
+追加した試験（`tests/unit/stroke-topology.test.ts`、`tests/unit/stroke-graph-builder.test.ts`）:
+
+| 試験 | 何を固定したか |
+|---|---|
+| `is false for a straight run whose cross products are rounding noise` | 外積が 0 と 1e-18 に割れる直線6点 |
+| `is false when the cross products straddle zero as rounding noise` | 外積が ±1.4e-17 に割れる直線4点（epsilonが要る場合） |
+| `is false for a shallow wave that never crosses itself` | 浅い波線（人が普通に描く形） |
+| `is false for every stroke whose x only increases` | Seed固定で300本生成し、誤判定0件 |
+| `accepts a shallow wave instead of calling it self intersecting` | 変換パイプライン全体での受け入れ |
+
+**配線切断証明**: 修正前の判定式へ戻すと上記5件だけが失敗。epsilonだけ0にすると、そのうち2件（±1.4e-17の4点と300本の生成試験）が失敗しました。どちらの変更も必要です。
+
+### 原因4: Populationの一部が地面の外に生成されていた（不具合）
+
+リプレイを調べる過程で見つけました。**M4だけでなくM2・M3の実測値にも影響します。**
+
+`planLanes` はPopulationを中央から左右へ並べ、間隔は「骨格幅 + 12 m」です。一方 `DEFAULT_PHYSICS_WORLD_OPTIONS.groundHalfWidth` は 200 m でした。
+
+| 骨格幅 | レーン間隔 | Population 32 の端 | 地面の外に出た個体 |
+|---:|---:|---:|---:|
+| 1.0 m | 13.0 m | ±202 m | 2 / 32 |
+| 3.82 m（`zigzag6`、M2・M3で使用） | 15.8 m | ±245 m | **6 / 32** |
+| 5.93 m（一筆で描いた形の例） | 17.9 m | ±278 m | **10 / 32** |
+
+地面の外に生成された個体は6秒間落下し（終了時 y = −172.7 m）、前進量0のまま `completed` として世代へ混ざっていました。`maxDisplacement` 200 m にわずかに届かないため `invalid` にもならず、**静かに母集団の1/5〜1/3を無駄にしていました**。
+
+修正: 地面の半幅を 200 m → **1000 m**。Population 32 で最大骨格（1.2 m × 10本）を並べても端は ±378 m、そこから `maxDisplacement` 200 m 進んでも地面が続きます。
+
+追加した試験:
+
+| 試験 | 何を固定したか |
+|---|---|
+| `spawns the whole population on the ground, not past its edge`（integration） | Population 32 を6秒動かし、落下した個体が0件 |
+| `keeps every lane of a full population on the default ground`（unit） | 一筆が作れる最大骨格でも、全レーンが既定の地面に収まる |
+
+**配線切断証明**: 地面を200 mへ戻すと、この2件だけが失敗しました。
+
+再測定の結果は [docs/15](15-m2-population-performance.md) §12 と [docs/16](16-m3-evolution-validation.md) §11 に記録しました。**M2・M3の受入条件の判定は変わりません。**
+
+### リプレイで何が見えるか
+
+「上段が動かない」ように見える場合、多くは**世代0のベストが実際にほとんど動かない**ためです。ある一筆（骨10本・骨格幅5.93 m）での実測:
+
+| レーン | 個体 | 6秒間の移動 |
+|---|---|---:|
+| 上段 | 世代0のベスト | 0.07 m |
+| 下段 | 世代2のベスト | 8.02 m |
+
+上段は「まだ学習していない状態」を見せるための対照です。下段だけが進むのが正常な見え方になります。
+
+なお、画面上部の **「世代0 ベスト距離」は fitness 最良の個体ではなく、その世代で最も遠くまで進んだ個体の距離**です（`summarizeGeneration` は前進量の最大値を取ります）。リプレイに出るのは fitness 最良の個体なので、**表示距離とリプレイの見た目が一致しないこと**があります。上の例では表示が 1.00 体長、リプレイの上段は 0.01 体長でした。この不一致はM6のUI設計で解消します（§10 に持ち越し）。
+
 ### この修正で未確認のこと
 
 - **ブラウザ上での確認は未実施**です。§8 の手順3・4・6がその確認にあたります。
 - `b2DestroyWorld` のslot解放漏れは vendor 側の問題で、**回避しただけで直してはいません**。1ページで33個以上のWorldを必要とする実装は今後も失敗します。D-006（1 Worldを再利用）を守る限り起きません。
 - 同じ理由で、1つのテストファイル内でWorldを32個より多く作ることもできません。現在の最大は `tests/integration/evolution-run.test.ts` の17個です。
-
+- 「世代0 ベスト距離」とリプレイ上段の個体が別物である点は、表示の問題として残っています（上記）。
+- 骨の本数上限10本は変えていません。キャンバスいっぱいに描くと11〜14本になり拒否されます。最大骨数の確定は[docs/13](13-milestone-quality-and-decision-gates.md) §6 のとおりM5の判断項目です。

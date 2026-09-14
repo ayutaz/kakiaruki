@@ -67,6 +67,7 @@ src/simulation/box2d/ … Box2D adapter
 - Phaser から直接 Box2D を叩かない。
 - **Box2D固有ID（`b2BodyId` 等）を domain model へ漏らさない。** 隔離点は `src/simulation/box2d/` で、外へは `src/simulation/ports/` の型（`CreatureHandle`、`CreatureSnapshot` など数値だけ）を返します。
 - 物理時間と描画時間を分ける（`FixedStepRunner` の accumulator）。描画個体数を変えても評価結果が変わってはいけません。
+- **Populationのレーンは必ず地面の上に収まること。** `planLanes` の間隔は「骨格幅 + 12 m」なので、Population 32 では端が最大 ±378 m になります。地面 (`groundHalfWidth` 1000 m) が足りないと外側の個体が落下し、前進量0のまま `completed` として世代に混ざります（過去にM2・M3の実測値を歪めました。docs/17 §11）。
 - 乱数は注入可能な Seed付き generator のみ。**domain で `Math.random()` を使わない**。
 - 保存・リプレイ形式には `schemaVersion` を持たせる。
 
