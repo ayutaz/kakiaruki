@@ -121,6 +121,32 @@ describe("observation session", () => {
     expect(session.shapeCount()).toBe(1);
   });
 
+  it("keeps the running observation when a new one cannot start", () => {
+    // 壊れた形を渡されても、いま見ている観察を壊さない。
+    // 画面は理由を出して、そのまま操作を続けられる必要がある。
+    const session = makeSession();
+    session.start(zigzag6, genomes(2), { episodeSeconds: 1 });
+    const before = session.snapshots(2);
+
+    const broken = { nodes: [], edges: [], rootNodeId: "missing" };
+    expect(() => session.start(broken, genomes(1), { episodeSeconds: 1 })).toThrow(/invalid/);
+
+    expect(session.populationSize).toBe(2);
+    expect(session.snapshots(2)).toHaveLength(2);
+    expect(session.snapshots(2)[0]!.centerOfMass.x).toBeCloseTo(before[0]!.centerOfMass.x, 9);
+    expect(() => session.advance(1 / 60, 1)).not.toThrow();
+  });
+
+  it("can start again after a failed start", () => {
+    const session = makeSession();
+
+    expect(() => session.start(zigzag6, [], { episodeSeconds: 1 })).toThrow(/genome/);
+    session.start(zigzag6, genomes(1), { episodeSeconds: 1 });
+
+    expect(session.populationSize).toBe(1);
+    expect(session.shapeCount()).toBe(1 + zigzag6.edges.length);
+  });
+
   it("shows only the individuals the screen asks for", () => {
     const session = makeSession();
     session.start(zigzag6, genomes(4), { episodeSeconds: 1 });
