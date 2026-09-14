@@ -171,7 +171,7 @@ M1〜M6は自動試験の受入条件をおおむね満たしていますが、�
 
 | # | 内容 | 種類 | 参照 |
 |---|---|---|---|
-| 0 | **製品画面での体験確認（M6判断ゲート）** | 体験確認（人） | [docs/19](19-m6-experience-review.md) §8 |
+| 0 | **製品画面での体験確認（M6判断ゲート）** | 体験確認（人） | [docs/19](19-m6-experience-review.md) §8。入り組んだ一筆が受け入れられることのみ確認済み（2026-09-14） |
 | 1 | ブラウザ前景タブでの p95 frame time | 実測（人） | [docs/15](15-m2-population-performance.md) §8 |
 | 2 | 世代変化を人が理解できるか（M3判断ゲート） | 体験確認（人） | [docs/16](16-m3-evolution-validation.md) §8 |
 | 3 | 実ブラウザでのPointer／キーボード操作 | 操作確認（人） | [docs/17](17-m4-stroke-input-validation.md) §8 |
