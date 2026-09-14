@@ -10,6 +10,10 @@ import {
   DEFAULT_STROKE_GRAPH_OPTIONS,
   type StrokeGraphResult
 } from "../../src/domain/stroke/stroke-graph-builder.ts";
+import {
+  normalizeStroke,
+  polylineLength
+} from "../../src/domain/stroke/stroke-normalize.ts";
 import type { StrokePoint } from "../../src/domain/stroke/stroke-point.ts";
 import {
   angleOf,
@@ -25,6 +29,7 @@ import {
   lShapeStroke,
   repeatedPointStroke,
   bigWaveStroke,
+  elaborateStroke,
   selfIntersectingStroke,
   shallowWaveStroke,
   humanoidStroke,
@@ -242,6 +247,24 @@ describe("buildGraphFromStroke", () => {
   it("keeps a stroke without a retrace as a chain", () => {
     expect(Math.max(...degreesOf(expectOk(build(zigzagStroke())).graph).values())).toBe(2);
     expect(Math.max(...degreesOf(expectOk(build(lShapeStroke())).graph).values())).toBe(2);
+  });
+
+  it("accepts a long elaborate stroke by making the bones coarser", () => {
+    // 長いというだけで拒否しない。描いた形はそのままに、骨を粗くして収める。
+    const result = expectOk(build(elaborateStroke()));
+
+    expect(result.graph.edges.length).toBeLessThanOrEqual(
+      DEFAULT_STROKE_GRAPH_OPTIONS.maxEdgeCount
+    );
+    expect(validateCreatureGraph(result.graph).ok).toBe(true);
+
+    // 形が保たれていること: 骨の総延長が描線の長さから大きく外れない。
+    const drawnLength = polylineLength(
+      normalizeStroke(elaborateStroke(), STROKE_VIEWPORT, DEFAULT_STROKE_GRAPH_OPTIONS)
+    );
+    const boneLength = edgeLengths(result.graph).reduce((total, value) => total + value, 0);
+    expect(boneLength).toBeGreaterThan(drawnLength * 0.8);
+    expect(boneLength).toBeLessThan(drawnLength * 1.05);
   });
 
   it("keeps every stroke limit inside the creature graph limits", () => {

@@ -64,6 +64,8 @@ export interface StrokeGraphOptions extends NormalizeOptions {
   readonly retraceSnapDistance: number;
   /** 戻りと認めるのに必要な最小の長さ [m]。 */
   readonly minRetraceLength: number;
+  /** 骨を粗くするときの、1本あたりの上限 [m]。 */
+  readonly maxCoarseEdgeLength: number;
 }
 
 export const DEFAULT_STROKE_GRAPH_OPTIONS: Omit<StrokeGraphOptions, "viewport"> = {
@@ -74,12 +76,16 @@ export const DEFAULT_STROKE_GRAPH_OPTIONS: Omit<StrokeGraphOptions, "viewport"> 
   // docs/04 §5 の初期提案（短辺の2%〜20%）を worldShortSide 6 m に当てはめた値。
   minEdgeLength: 0.35,
   maxEdgeLength: 1.2,
-  maxEdgeCount: 14,
+  maxEdgeCount: 20,
   boneRadius: 0.11,
   closeDistance: 0.35,
   retraceSnapDistance: DEFAULT_RETRACE_OPTIONS.snapDistance,
-  minRetraceLength: DEFAULT_RETRACE_OPTIONS.minRetraceLength
+  minRetraceLength: DEFAULT_RETRACE_OPTIONS.minRetraceLength,
+  maxCoarseEdgeLength: 2
 };
+
+/** 骨を粗くし直す回数の上限。これを超えても収まらない線は拒否する。 */
+const MAX_COARSENING_ATTEMPTS = 6;
 
 export type StrokeGraphResult =
   | { readonly ok: true; readonly graph: CreatureGraph; readonly preview: StrokePreview }
@@ -291,39 +297,74 @@ export function buildGraphFromStroke(
     minRetraceLength: resolved.minRetraceLength
   });
 
-  const builder = new BranchingGraphBuilder(resolved.boneRadius);
-  let runStart = 0;
-  for (const [index, span] of [...spans, null].entries()) {
-    const runEnd = span === null ? resampled.length - 1 : span.start;
-    const run = resampled.slice(runStart, runEnd + 1);
-    const previous = index === 0 ? null : spans[index - 1]!;
+  /**
+   * 指定の粗さで骨格を組む。粗さ1.0が既定の骨長。
+   *
+   * 粗くするのは骨の**上限長**と簡略化の許容誤差だけで、最小骨長は動かさない。
+   * 最小骨長を上げると短い骨が次々に統合され、描いた形そのものが消えるため。
+   */
+  const buildAt = (coarseness: number): CreatureGraph => {
+    const minEdgeLength = resolved.minEdgeLength;
+    const maxEdgeLength = Math.min(
+      resolved.maxEdgeLength * coarseness,
+      resolved.maxCoarseEdgeLength
+    );
+    const options: StrokeGraphOptions = {
+      ...resolved,
+      minEdgeLength,
+      maxEdgeLength,
+      simplifyTolerance: resolved.simplifyTolerance * coarseness
+    };
 
-    if (run.length >= 2) {
-      const nodePoints = runToNodePoints(run, resolved);
-      if (previous === null) {
-        builder.appendChain(nodePoints, null);
-      } else {
-        const branchPoint = resampled[previous.branchIndex]!;
-        const attachId = builder.attachmentFor(branchPoint, resolved.minEdgeLength / 2);
-        builder.appendChain(nodePoints, attachId);
+    const builder = new BranchingGraphBuilder(resolved.boneRadius);
+    let runStart = 0;
+    for (const [index, span] of [...spans, null].entries()) {
+      const runEnd = span === null ? resampled.length - 1 : span.start;
+      const run = resampled.slice(runStart, runEnd + 1);
+      const previous = index === 0 ? null : spans[index - 1]!;
+
+      if (run.length >= 2) {
+        const nodePoints = runToNodePoints(run, options);
+        if (previous === null) {
+          builder.appendChain(nodePoints, null);
+        } else {
+          const branchPoint = resampled[previous.branchIndex]!;
+          const attachId = builder.attachmentFor(branchPoint, minEdgeLength / 2);
+          builder.appendChain(nodePoints, attachId);
+        }
+      }
+      if (span !== null) {
+        runStart = span.end;
       }
     }
-    if (span !== null) {
-      runStart = span.end;
+
+    let candidate = builder.build();
+    if (candidate.edges.length === 0) {
+      return candidate;
     }
+    candidate = mergeShortGraphEdges(candidate, minEdgeLength);
+    candidate = splitLongGraphEdges(candidate, maxEdgeLength);
+    return mergeShortGraphEdges(candidate, minEdgeLength);
+  };
+
+  // 長いというだけで拒否しない。骨の本数が上限を超えたら、骨を太く長くして
+  // 描いた形のまま収める。何度粗くしても収まらないときだけ理由を返す。
+  let graph = buildAt(1);
+  let coarseness = 1;
+  for (let attempt = 0; attempt < MAX_COARSENING_ATTEMPTS; attempt += 1) {
+    if (graph.edges.length <= resolved.maxEdgeCount || graph.edges.length === 0) {
+      break;
+    }
+    coarseness *= Math.max(1.15, graph.edges.length / resolved.maxEdgeCount);
+    graph = buildAt(coarseness);
   }
 
-  let graph = builder.build();
   if (graph.edges.length === 0) {
     return failure(
       "stroke-too-short",
       "線が短すぎて骨を作れません。もっと長く描いてください。"
     );
   }
-
-  graph = mergeShortGraphEdges(graph, resolved.minEdgeLength);
-  graph = splitLongGraphEdges(graph, resolved.maxEdgeLength);
-  graph = mergeShortGraphEdges(graph, resolved.minEdgeLength);
 
   const built = new Map(graph.nodes.map((node) => [node.id, node.position]));
   if (
@@ -344,16 +385,16 @@ export function buildGraphFromStroke(
   if (edgeCount > resolved.maxEdgeCount) {
     return failure(
       "too-many-edges",
-      `骨が ${edgeCount} 本になり、上限の ${resolved.maxEdgeCount} 本を超えます。もっと短いか、単純な形で描いてください。`
+      `線が長すぎます。骨を太くしても ${edgeCount} 本必要で、上限の ${resolved.maxEdgeCount} 本に収まりません。もっと短い線で描いてください。`
     );
   }
 
   const validated = validateCreatureGraph(graph, {
     minEdgeLength: resolved.minEdgeLength,
-    maxEdgeLength: resolved.maxEdgeLength,
+    maxEdgeLength: resolved.maxCoarseEdgeLength,
     maxEdgeCount: resolved.maxEdgeCount,
     maxNodeDegree: 4,
-    maxTotalLength: resolved.maxEdgeLength * resolved.maxEdgeCount,
+    maxTotalLength: resolved.maxCoarseEdgeLength * resolved.maxEdgeCount,
     maxCoordinateMagnitude: resolved.worldShortSide,
     minRadius: 0.05,
     maxRadius: 0.4

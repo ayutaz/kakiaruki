@@ -205,6 +205,24 @@ export const HUMANOID_PATH: ScreenPath = [
 export const humanoidStroke = (stepPx = 5): readonly StrokePoint[] =>
   sampleStroke(HUMANOID_PATH, stepPx);
 
+/**
+ * キャンバスを埋める入り組んだ線。既定の骨長のままだと30本近くになる。
+ * 長いだけで拒否せず、骨を粗くして受け入れることを確かめるために使う。
+ */
+export const ELABORATE_PATH: ScreenPath = [
+  [40, 420],
+  [130, 90],
+  [220, 420],
+  [310, 90],
+  [400, 420],
+  [490, 90],
+  [580, 420],
+  [620, 200]
+];
+
+export const elaborateStroke = (stepPx = 5): readonly StrokePoint[] =>
+  sampleStroke(ELABORATE_PATH, stepPx);
+
 /** 短すぎる線。骨1本にも足りない。 */
 export const tooShortStroke = (): readonly StrokePoint[] =>
   sampleStroke(

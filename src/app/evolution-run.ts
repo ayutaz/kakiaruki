@@ -137,93 +137,178 @@ function evaluatePopulation(
 /**
  * 遺伝的アルゴリズムと物理評価を結ぶApplication層。
  * domain側は物理を知らず、simulation側は進化を知らない。
+ *
+ * 1世代ずつ進められるようにしてあるのは、画面が固まる時間を短く保つため。
+ * 全世代を一度に回す `runEvolution` は、これを最後まで進めるだけの薄い包み。
  */
+export class EvolutionRunner {
+  readonly #options: EvolutionRunOptions;
+  readonly #skeleton: SkeletonSettings;
+  readonly #evolution: EvolutionConfig;
+  readonly #weights: FitnessWeights;
+  readonly #gains: ControllerGains;
+  readonly #episode: EpisodeOptions;
+  readonly #plan: SkeletonPlan;
+  readonly #width: number;
+  readonly #random: ReturnType<typeof createSeededRandom>;
+  readonly #initialPopulation: readonly Genome[];
+  readonly #world: PhysicsWorld;
+  readonly #ownsWorld: boolean;
+  readonly #generations: GenerationStats[] = [];
+  readonly #bestPerGeneration: BestEver[] = [];
+
+  #population: readonly Genome[];
+  #bestEver: BestEver | null = null;
+  #completed = 0;
+  #disposed = false;
+
+  constructor(options: EvolutionRunOptions) {
+    if (!Number.isInteger(options.generations) || options.generations < 1) {
+      throw new RangeError("generations must be a positive integer");
+    }
+    this.#options = options;
+    this.#skeleton = options.skeleton ?? DEFAULT_SKELETON_SETTINGS;
+    this.#evolution = options.evolution ?? DEFAULT_EVOLUTION_CONFIG;
+    this.#weights = options.weights ?? DEFAULT_FITNESS_WEIGHTS;
+    this.#gains = options.gains ?? DEFAULT_CONTROLLER_GAINS;
+    this.#episode = resolveEpisodeOptions(options.episode ?? {});
+    this.#plan = planFor(options.graph, this.#skeleton);
+    this.#width = skeletonWidth(this.#plan);
+    this.#random = createSeededRandom(options.seed);
+    this.#initialPopulation = createInitialPopulation(
+      this.#random,
+      this.#plan.joints.length,
+      this.#evolution
+    );
+    this.#population = this.#initialPopulation;
+    this.#ownsWorld = options.world === undefined;
+    this.#world = options.world ?? createPhysicsWorld();
+  }
+
+  get totalGenerations(): number {
+    return this.#options.generations;
+  }
+
+  get completedGenerations(): number {
+    return this.#completed;
+  }
+
+  get done(): boolean {
+    return this.#completed >= this.#options.generations;
+  }
+
+  /** 1世代ぶんを評価して世代交代する。まだ続くなら true。 */
+  advance(): boolean {
+    if (this.#disposed) {
+      throw new Error("evolution runner has been disposed");
+    }
+    if (this.done) {
+      return false;
+    }
+
+    const generation = this.#completed;
+    const genomes =
+      this.#options.disableEvolution === true ? this.#initialPopulation : this.#population;
+    const results = evaluatePopulation(
+      this.#world,
+      this.#plan,
+      genomes,
+      this.#gains,
+      this.#episode
+    );
+    const breakdowns: FitnessBreakdown[] = results.map((result) =>
+      evaluateFitness(result, this.#width, this.#weights)
+    );
+    const scored: ScoredGenome[] = genomes.map((genome, index) => ({
+      genome,
+      fitness: breakdowns[index]!.fitness
+    }));
+    const terms = breakdowns.map((breakdown) => breakdown.terms);
+
+    this.#generations.push(summarizeGeneration(generation, scored, terms));
+
+    let generationBest: BestEver | null = null;
+    for (const [index, entry] of scored.entries()) {
+      const candidate: BestEver = {
+        genome: entry.genome,
+        fitness: entry.fitness,
+        generation,
+        terms: terms[index]!,
+        episode: results[index]!
+      };
+      if (generationBest === null || candidate.fitness > generationBest.fitness) {
+        generationBest = candidate;
+      }
+    }
+    this.#bestPerGeneration.push(generationBest!);
+    if (this.#bestEver === null || generationBest!.fitness > this.#bestEver.fitness) {
+      this.#bestEver = generationBest!;
+    }
+
+    if (this.#options.disableEvolution !== true) {
+      this.#population = nextGeneration(this.#random, scored, this.#evolution);
+    }
+
+    this.#completed += 1;
+    if (this.done) {
+      this.#releaseWorld();
+    }
+    return !this.done;
+  }
+
+  /** 全世代が終わっていれば結果を返す。途中なら null。 */
+  result(): EvolutionRunResult | null {
+    const bestEver = this.#bestEver;
+    if (!this.done || bestEver === null) {
+      return null;
+    }
+    return {
+      seed: this.#options.seed,
+      graphHash: creatureGraphHash(this.#options.graph),
+      skeletonWidth: this.#width,
+      generations: this.#generations,
+      bestPerGeneration: this.#bestPerGeneration,
+      bestEver,
+      runRecord: createRunRecord({
+        graph: this.#options.graph,
+        seed: this.#options.seed,
+        episode: this.#episode,
+        skeleton: this.#skeleton,
+        result: bestEver.episode,
+        createdAt: this.#options.createdAt ?? new Date().toISOString(),
+        runtimeVersions: RUNTIME_VERSIONS
+      })
+    };
+  }
+
+  /** 途中で止める。自分で作ったWorldだけ破棄する。 */
+  dispose(): void {
+    this.#disposed = true;
+    this.#releaseWorld();
+  }
+
+  #releaseWorld(): void {
+    if (this.#ownsWorld) {
+      this.#world.destroy();
+    }
+  }
+}
+
 export function runEvolution(options: EvolutionRunOptions): EvolutionRunResult {
-  if (!Number.isInteger(options.generations) || options.generations < 1) {
-    throw new RangeError("generations must be a positive integer");
-  }
-
-  const skeleton = options.skeleton ?? DEFAULT_SKELETON_SETTINGS;
-  const evolution = options.evolution ?? DEFAULT_EVOLUTION_CONFIG;
-  const weights = options.weights ?? DEFAULT_FITNESS_WEIGHTS;
-  const gains = options.gains ?? DEFAULT_CONTROLLER_GAINS;
-  const episode = resolveEpisodeOptions(options.episode ?? {});
-
-  const plan = planFor(options.graph, skeleton);
-  const width = skeletonWidth(plan);
-  const random = createSeededRandom(options.seed);
-  const initialPopulation = createInitialPopulation(random, plan.joints.length, evolution);
-
-  const world = options.world ?? createPhysicsWorld();
-  const generations: GenerationStats[] = [];
-  const bestPerGeneration: BestEver[] = [];
-  let population = initialPopulation;
-  let bestEver: BestEver | null = null;
-
+  const runner = new EvolutionRunner(options);
   try {
-    for (let generation = 0; generation < options.generations; generation += 1) {
-      const genomes = options.disableEvolution === true ? initialPopulation : population;
-      const results = evaluatePopulation(world, plan, genomes, gains, episode);
-      const breakdowns: FitnessBreakdown[] = results.map((result) =>
-        evaluateFitness(result, width, weights)
-      );
-      const scored: ScoredGenome[] = genomes.map((genome, index) => ({
-        genome,
-        fitness: breakdowns[index]!.fitness
-      }));
-      const terms = breakdowns.map((breakdown) => breakdown.terms);
-
-      generations.push(summarizeGeneration(generation, scored, terms));
-
-      let generationBest: BestEver | null = null;
-      for (const [index, entry] of scored.entries()) {
-        const candidate: BestEver = {
-          genome: entry.genome,
-          fitness: entry.fitness,
-          generation,
-          terms: terms[index]!,
-          episode: results[index]!
-        };
-        if (generationBest === null || candidate.fitness > generationBest.fitness) {
-          generationBest = candidate;
-        }
-      }
-      bestPerGeneration.push(generationBest!);
-      if (bestEver === null || generationBest!.fitness > bestEver.fitness) {
-        bestEver = generationBest!;
-      }
-
-      if (options.disableEvolution !== true) {
-        population = nextGeneration(random, scored, evolution);
-      }
+    while (runner.advance()) {
+      // 全世代を回しきる。
     }
-  } finally {
-    if (options.world === undefined) {
-      world.destroy();
-    }
+  } catch (error) {
+    runner.dispose();
+    throw error;
   }
-
-  if (bestEver === null) {
+  const result = runner.result();
+  if (result === null) {
     throw new Error("evolution produced no individuals");
   }
-
-  return {
-    seed: options.seed,
-    graphHash: creatureGraphHash(options.graph),
-    skeletonWidth: width,
-    generations,
-    bestPerGeneration,
-    bestEver,
-    runRecord: createRunRecord({
-      graph: options.graph,
-      seed: options.seed,
-      episode,
-      skeleton,
-      result: bestEver.episode,
-      createdAt: options.createdAt ?? new Date().toISOString(),
-      runtimeVersions: RUNTIME_VERSIONS
-    })
-  };
+  return result;
 }
 
 export interface ReplayOptions {

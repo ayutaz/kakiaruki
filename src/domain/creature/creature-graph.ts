@@ -32,9 +32,9 @@ export interface GraphLimits {
 export const DEFAULT_GRAPH_LIMITS: GraphLimits = {
   minEdgeLength: 0.25,
   maxEdgeLength: 2,
-  maxEdgeCount: 16,
+  maxEdgeCount: 24,
   maxNodeDegree: 4,
-  maxTotalLength: 24,
+  maxTotalLength: 40,
   maxCoordinateMagnitude: 8,
   minRadius: 0.05,
   maxRadius: 0.4

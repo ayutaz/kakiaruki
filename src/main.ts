@@ -1,4 +1,8 @@
-import { runEvolution, type BestEver, type EvolutionRunResult } from "./app/evolution-run.ts";
+import {
+  EvolutionRunner,
+  type BestEver,
+  type EvolutionRunResult
+} from "./app/evolution-run.ts";
 import { ObservationSession } from "./app/observation-session.ts";
 import { validateCreatureGraph } from "./domain/creature/creature-graph-validation.ts";
 import type { CreatureGraph } from "./domain/creature/creature-graph.ts";
@@ -68,8 +72,10 @@ class Screen {
   #preview: StrokePreview | null = null;
   #plan: SkeletonPlan | null = null;
   #run: EvolutionRunResult | null = null;
+  #learner: EvolutionRunner | null = null;
   #lanes: ObservationLane[] = [];
   #lastStamp = 0;
+  #learnStartedAt = 0;
   #frameHandle: number | null = null;
 
   constructor() {
@@ -109,13 +115,13 @@ class Screen {
       } else if (command === "clear" || command === "cancel") {
         this.#clearDrawing();
       } else if (command === "confirm") {
-        void this.#learn();
+        this.#learn();
       }
     });
 
     element<HTMLButtonElement>("undo").addEventListener("click", () => this.#undo());
     element<HTMLButtonElement>("clear").addEventListener("click", () => this.#clearDrawing());
-    element<HTMLButtonElement>("learn").addEventListener("click", () => void this.#learn());
+    element<HTMLButtonElement>("learn").addEventListener("click", () => this.#learn());
     element<HTMLButtonElement>("play").addEventListener("click", () => {
       this.#dispatch({ type: "play" });
       this.#restartObservation();
@@ -231,7 +237,7 @@ class Screen {
     this.#render();
   }
 
-  async #learn(): Promise<void> {
+  #learn(): void {
     const graph = this.#graph;
     if (!graph || !this.#state.canLearn) {
       return;
@@ -239,14 +245,10 @@ class Screen {
     const generations = numberValue("generations");
     const populationSize = numberValue("population");
     this.#session.stop();
-    this.#dispatch({ type: "learnStarted", generations, populationSize });
-    this.#render();
-    // 学習は同期処理で画面が止まる。止まる前に状態表示を描かせる。
-    await new Promise((resolve) => setTimeout(resolve, 32));
+    this.#lanes = [];
 
     try {
-      const started = performance.now();
-      this.#run = runEvolution({
+      this.#learner = new EvolutionRunner({
         graph,
         seed: numberValue("seed"),
         generations,
@@ -256,33 +258,72 @@ class Screen {
         // 画面の寿命でWorldは1つ。学習と観察で同じものを使う（D-006）。
         world: this.#session.physicsWorld
       });
-      const wallSeconds = (performance.now() - started) / 1000;
-
-      const slider = element<HTMLInputElement>("generation");
-      slider.max = String(this.#run.generations.length - 1);
-      slider.value = String(this.#run.bestEver.generation);
-
-      this.#dispatch({
-        type: "learnFinished",
-        generationCount: this.#run.generations.length,
-        bestGeneration: this.#run.bestEver.generation,
-        episodeSeconds: EPISODE_SECONDS
-      });
-      element("gen0").textContent =
-        `${this.#run.generations[0]!.bestNormalizedForwardProgress.toFixed(2)} 体長`;
-      element("best").textContent =
-        `${this.#run.bestEver.terms.normalizedForwardProgress.toFixed(2)} 体長（世代 ${this.#run.bestEver.generation}）`;
-      element("hash").textContent = this.#run.graphHash;
-      element("status").textContent =
-        `${wallSeconds.toFixed(1)} 秒で ${this.#run.generations.length} 世代を学習しました。下の線が古い世代、明るい線が新しい世代です。`;
-      this.#restartObservation();
     } catch (error) {
-      this.#dispatch({
-        type: "learnFailed",
-        message: `学習を完了できませんでした（${error instanceof Error ? error.message : String(error)}）。もう一度お試しください。直らない場合はページを再読み込みしてください。`
-      });
-      this.#render();
+      this.#failLearning(error);
+      return;
     }
+    this.#learnStartedAt = performance.now();
+    this.#dispatch({ type: "learnStarted", generations, populationSize });
+    this.#render();
+  }
+
+  /**
+   * 学習を1世代だけ進める。1世代の評価は同期処理で数百ミリ秒かかるため、
+   * まとめて回すと画面が数秒止まる。フレームごとに区切って進捗を出す。
+   */
+  #advanceLearning(): void {
+    const learner = this.#learner;
+    if (!learner) {
+      return;
+    }
+    try {
+      const continues = learner.advance();
+      this.#dispatch({ type: "learnProgress", completed: learner.completedGenerations });
+      if (continues) {
+        this.#render();
+        return;
+      }
+    } catch (error) {
+      this.#learner = null;
+      this.#failLearning(error);
+      return;
+    }
+
+    const run = learner.result();
+    this.#learner = null;
+    if (!run) {
+      this.#failLearning(new Error("学習結果を取り出せませんでした"));
+      return;
+    }
+    this.#run = run;
+    const wallSeconds = (performance.now() - this.#learnStartedAt) / 1000;
+
+    const slider = element<HTMLInputElement>("generation");
+    slider.max = String(run.generations.length - 1);
+    slider.value = String(run.bestEver.generation);
+
+    this.#dispatch({
+      type: "learnFinished",
+      generationCount: run.generations.length,
+      bestGeneration: run.bestEver.generation,
+      episodeSeconds: EPISODE_SECONDS
+    });
+    element("gen0").textContent =
+      `${run.generations[0]!.bestNormalizedForwardProgress.toFixed(2)} 体長`;
+    element("best").textContent =
+      `${run.bestEver.terms.normalizedForwardProgress.toFixed(2)} 体長（世代 ${run.bestEver.generation}）`;
+    element("hash").textContent = run.graphHash;
+    element("status").textContent =
+      `${wallSeconds.toFixed(1)} 秒で ${run.generations.length} 世代を学習しました。暗い線が古い世代、明るい線が新しい世代です。`;
+    this.#restartObservation();
+  }
+
+  #failLearning(error: unknown): void {
+    this.#dispatch({
+      type: "learnFailed",
+      message: `学習を完了できませんでした（${error instanceof Error ? error.message : String(error)}）。もう一度お試しください。直らない場合はページを再読み込みしてください。`
+    });
+    this.#render();
   }
 
   /** 選んだ世代までを等間隔に取り出し、同じ地面へ並べて走らせる。 */
@@ -329,6 +370,12 @@ class Screen {
   #frame(stamp: number): void {
     const elapsed = Math.max(0, (stamp - this.#lastStamp) / 1000);
     this.#lastStamp = stamp;
+
+    if (this.#state.phase === "learning") {
+      this.#advanceLearning();
+      this.#scheduleFrame();
+      return;
+    }
 
     if (this.#state.phase === "observing" && this.#state.playing) {
       this.#session.advance(elapsed, this.#state.speed);
@@ -390,8 +437,10 @@ class Screen {
       element("status").textContent =
         "この形で学習できます。「この形で学習する」を押してください（Enter）。";
     } else if (state.phase === "learning") {
+      const done = state.learnedGenerations;
       element("status").textContent =
-        `学習中… ${state.generations} 世代 × ${state.populationSize} 個体。終わるまで画面が止まります。`;
+        `学習中… ${done} / ${state.generations} 世代（${state.populationSize} 個体）。` +
+        "1世代ごとに画面が少し止まります。";
     }
   }
 }

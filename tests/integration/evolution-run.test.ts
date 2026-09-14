@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   replayGenome,
   runEvolution,
+  EvolutionRunner,
   type EvolutionRunOptions
 } from "../../src/app/evolution-run.ts";
 import { DEFAULT_EVOLUTION_CONFIG } from "../../src/domain/evolution/evolution-engine.ts";
@@ -145,6 +146,53 @@ describe("runEvolution", () => {
 
   it("refuses a non positive generation count", () => {
     expect(() => runEvolution({ ...BASE, generations: 0 })).toThrow(/generations/);
+  });
+});
+
+describe("EvolutionRunner", () => {
+  it("gives the same result as running the whole thing at once", () => {
+    const runner = new EvolutionRunner(BASE);
+
+    let guard = 0;
+    while (runner.advance()) {
+      guard += 1;
+      expect(guard).toBeLessThan(100);
+    }
+
+    expect(runner.result()).toEqual(runEvolution(BASE));
+  });
+
+  it("reports progress one generation at a time", () => {
+    const runner = new EvolutionRunner(BASE);
+
+    expect(runner.totalGenerations).toBe(6);
+    expect(runner.completedGenerations).toBe(0);
+    expect(runner.result()).toBeNull();
+
+    runner.advance();
+    expect(runner.completedGenerations).toBe(1);
+    expect(runner.done).toBe(false);
+
+    while (runner.advance()) {
+      // 残りを進める
+    }
+    expect(runner.completedGenerations).toBe(6);
+    expect(runner.done).toBe(true);
+    expect(runner.result()).not.toBeNull();
+  });
+
+  it("leaves a caller owned world alive and empty when stopped early", () => {
+    const world = createPhysicsWorld();
+    try {
+      const runner = new EvolutionRunner({ ...BASE, world });
+      runner.advance();
+
+      runner.dispose();
+
+      expect(world.countShapes()).toBe(1);
+    } finally {
+      world.destroy();
+    }
   });
 });
 

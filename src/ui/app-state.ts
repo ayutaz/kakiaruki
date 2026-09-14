@@ -27,6 +27,8 @@ export interface AppState {
   readonly populationSize: number;
   readonly episodeSeconds: number;
   readonly generationCount: number;
+  /** 学習中に何世代終わったか。 */
+  readonly learnedGenerations: number;
   readonly selectedGeneration: number;
   readonly bestGeneration: number;
   readonly speed: Speed;
@@ -51,6 +53,7 @@ export type AppEvent =
       readonly bestGeneration: number;
       readonly episodeSeconds: number;
     }
+  | { readonly type: "learnProgress"; readonly completed: number }
   | { readonly type: "learnFailed"; readonly message: string }
   | { readonly type: "play" }
   | { readonly type: "pause" }
@@ -67,6 +70,7 @@ export function initialAppState(): AppState {
     populationSize: 0,
     episodeSeconds: 0,
     generationCount: 0,
+    learnedGenerations: 0,
     selectedGeneration: 0,
     bestGeneration: 0,
     speed: 1,
@@ -92,6 +96,7 @@ export function reduce(state: AppState, event: AppEvent): AppState {
   // ここで形を差し替えると、UIが古いWorldを触りに行く。
   if (state.phase === "learning") {
     switch (event.type) {
+      case "learnProgress":
       case "learnFinished":
       case "learnFailed":
         break;
@@ -140,10 +145,16 @@ export function reduce(state: AppState, event: AppEvent): AppState {
         errors: [],
         generations: event.generations,
         populationSize: event.populationSize,
+        learnedGenerations: 0,
         playing: false,
         canDraw: false,
         canLearn: false
       };
+
+    case "learnProgress":
+      return state.phase === "learning"
+        ? { ...state, learnedGenerations: Math.max(0, Math.trunc(event.completed)) }
+        : state;
 
     case "learnFinished":
       return {

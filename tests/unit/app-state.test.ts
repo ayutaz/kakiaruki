@@ -73,6 +73,22 @@ describe("app state", () => {
     expect(state.canDraw).toBe(false);
   });
 
+  it("counts the generations while learning so the screen can show progress", () => {
+    const started = learning();
+
+    const midway = reduce(started, { type: "learnProgress", completed: 7 });
+
+    expect(midway.phase).toBe("learning");
+    expect(midway.learnedGenerations).toBe(7);
+    expect(midway.canDraw).toBe(false);
+  });
+
+  it("ignores progress that arrives outside learning", () => {
+    const idle = ready();
+
+    expect(reduce(idle, { type: "learnProgress", completed: 3 })).toBe(idle);
+  });
+
   it("moves to observing when learning finishes", () => {
     const state = observing();
 
