@@ -111,10 +111,15 @@ production buildのJavaScriptは約1,541 kB、gzip後約403 kBでした。Vite�
 
 ## 10. P1へ持ち越す項目
 
-1. 4〜6ボーンの `CreatureGraph` fixture。
-2. 1 World内のPopulation分離レーン。
-3. 世代ごとのBody／Joint cleanupと100世代相当の資源監視。
-4. Population 1／8／32のthroughput測定。
-5. 表示個体数がsimulation結果へ影響しないことの試験。
-6. 背景tab復帰時のaccumulator処理。
-7. build chunk分割の要否判断。
+この節はP0時点（2026-09-14）の記録です。その後の処理結果を併記します。
+
+| # | 持ち越し項目 | その後 |
+|---|---|---|
+| 1 | 4〜6ボーンの `CreatureGraph` fixture | **M1で実施**（[docs/14](14-m1-simulation-validation.md) §6） |
+| 2 | 1 World内のPopulation分離レーン | **M2で実施**（[docs/15](15-m2-population-performance.md) §7） |
+| 3 | 世代ごとのBody／Joint cleanupと100世代相当の資源監視 | **M1・M2で実施**。shape数がbaselineへ復帰 |
+| 4 | Population 1／8／32のthroughput測定 | **M2で実施**。Population 32 で実時間の44倍（headless） |
+| 5 | 表示個体数がsimulation結果へ影響しないことの試験 | **M2で実施**。0／1／8で完全一致 |
+| 6 | 背景tab復帰時のaccumulator処理 | **未実施**。M6の体験統合で扱う |
+| 7 | build chunk分割の要否判断 | **未実施**。M7で判断。警告は継続中 |
+

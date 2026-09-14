@@ -128,14 +128,16 @@
 
 ```text
 docs/
-  14-m1-simulation-validation.md
-  15-m2-population-performance.md
-  16-m3-evolution-validation.md
-  17-m4-stroke-input-validation.md
-  18-m5-branching-validation.md
-  19-m6-experience-review.md
-  20-m7-release-readiness.md
+  14-m1-simulation-validation.md   作成済み
+  15-m2-population-performance.md  作成済み
+  16-m3-evolution-validation.md    作成済み
+  17-m4-stroke-input-validation.md 作成済み
+  18-m5-branching-validation.md    予定
+  19-m6-experience-review.md       予定
+  20-m7-release-readiness.md       予定
 ```
+
+各マイルストーンの**実装計画**は `docs/superpowers/plans/` に置いています（検証記録とは別物です）。
 
 各記録には最低限、次を含めます。
 
@@ -161,4 +163,23 @@ docs/
 
 ## 10. 直近のゲート
 
-現在の次工程はM1です。M1開始時に最初に固定するのは、`CreatureGraph` schema、代表fixture、validation error、Body／Joint生成数、episode終了条件です。これらを失敗テストとして表現できるまで、PopulationやGAの実装へ進みません。
+更新日: 2026-09-14。現在の次工程は **M5** です。
+
+### 未処理のゲートと確認
+
+M1〜M4は自動試験の受入条件を満たしていますが、人の確認が終わっていないものがあります。**自動試験の成功だけで完了扱いにしません**（§3）。
+
+| # | 内容 | 種類 | 参照 |
+|---|---|---|---|
+| 1 | ブラウザ前景タブでの p95 frame time | 実測（人） | [docs/15](15-m2-population-performance.md) §8 |
+| 2 | 世代変化を人が理解できるか（M3判断ゲート） | 体験確認（人） | [docs/16](16-m3-evolution-validation.md) §8 |
+| 3 | 実ブラウザでのPointer／キーボード操作 | 操作確認（人） | [docs/17](17-m4-stroke-input-validation.md) §8 |
+| 4 | browser E2Eフレームワークを導入するか | **ユーザー判断** | [docs/17](17-m4-stroke-input-validation.md) §8 |
+
+判断ゲートのうち、M2の「Phaser Box2D継続採用」は継続で暫定判定済みです（[docs/12](12-development-plan.md) §6）。
+
+### M5開始時に最初に固定するもの
+
+戻り線の検出仕様、snap規則、Y字・人型相当・意図しない近接のfixture、Edge単位Undoの不変条件、閉ループの扱い。これらを失敗テストとして表現できるまで実装へ進みません。
+
+M4では戻り線・自己交差・閉ループを**理由付きで拒否**しています。M5ではこの拒否を、どこまで受け入れる仕様へ変えるかを決めます。閉ループをMVPへ含めるかは §6 のとおり**人の決定**です。

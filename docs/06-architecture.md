@@ -31,38 +31,59 @@ Stroke domain     Evolution domain
 
 Phaserから直接Box2Dを操作せず、Application層のコマンドを通します。これにより、入力の単体テスト、headlessに近い物理試験、将来のGodot移植がしやすくなります。
 
-## 3. ディレクトリ案
+## 3. ディレクトリ構成
 
-P1以降へ段階的に移行する目標構成です。P0では技術成立を小さく検証するため、`src/simulation/` とPhaser Sceneを中心とした平坦な構成だけを作成しています。
+M4時点の実構成です。当初のディレクトリ案から、実装に合わせて名前と粒度を調整しています。
 
 ```text
 src/
   app/
-    commands/
-    state/
-    services/
-  domain/
-    stroke/
-    creature/
-    evolution/
-    replay/
+    evolution-run.ts          GAと物理評価の結線、対照群、リプレイ、RunRecord生成
+  domain/                     純粋TypeScript。Phaser / Box2D / DOM を import しない
+    creature/                 CreatureGraph、validation、graph hash
+    control/                  PD制御、JointCommandSource port と周期関数実装
+    evolution/                Seed付き乱数、Genome、Fitness、選択・交叉・変異、世代交代
+    stroke/                   一筆の点列 -> CreatureGraph の変換パイプライン
+    run/                      schemaVersion付き RunRecord
   simulation/
-    ports/
-    box2d/
+    ports/                    CreatureHandle、SteppableWorld。物理実装への依存を遮断する
+    box2d/                    Box2D adapter。Box2D APIを呼べるのはここだけ
+    skeleton-plan.ts          Graph -> Bone/Joint の幾何記述（純粋）
+    lane-allocator.ts         Populationのレーン配置（純粋）
+    episode-tracker.ts        1個体のepisode進行。worldのstepは呼び出し側が持つ
+    episode-runner.ts         単体評価（tracker + 自前のworld step）
+    population-runner.ts      1 World / N個体の同時評価
+    fixed-step-runner.ts      wall time -> 固定step
+    p0-physics-rig.ts         P0デモ専用。例外的にBox2Dを直接使う
   game/
-    scenes/
-    rendering/
-    input/
-  ui/
+    input/                    DOM Pointer / キーの薄いadapter
   shared/
+    vector2.ts
+  main.ts, p0-scene.ts, p0-control-state.ts, style.css   P0デモ画面
+  phaser-box2d.d.ts           vendorに無いTypeScript宣言（D-007）
 
 tests/
-  unit/
-  contract/
-  integration/
-  e2e/
-  fixtures/
+  unit/          純粋ロジックと fake を使った境界試験
+  contract/      Box2D adapterの契約試験
+  integration/   Graph -> 物理 -> 評価 -> 進化 の通し試験
+  fixtures/      CreatureGraph、stroke、fake CreatureHandle
+
+bench/           開発用ページと計測スクリプト（製品UIではない）
 ```
+
+未作成の層:
+
+- `src/game/scenes/` `src/game/rendering/` `src/ui/`: M6の体験統合で作ります。現在の描画は `bench/` の開発ページがCanvas 2Dで行っています。
+- `src/domain/replay/`: リプレイは `src/app/evolution-run.ts` の `replayGenome` と `RunRecord` で足りているため、独立モジュールにしていません。
+- `tests/e2e/`: browser E2Eフレームワークが未導入のため存在しません（[M4検証結果](17-m4-stroke-input-validation.md) §8）。
+
+### 層の依存を機械的に守る
+
+`tests/unit/layering.test.ts` が次を検査します。新しいモジュールを追加するときはこの試験を壊さないでください。
+
+- `src/domain/` のどのファイルからも、相対importを推移的に辿ってPhaser／Box2Dへ到達しない。
+- `episode-runner.ts` / `skeleton-plan.ts` / `fixed-step-runner.ts` からもPhaser／Box2Dへ到達しない。
+- `phaser-box2d` を import してよいのは `src/simulation/box2d/` と、P0デモ専用の `src/simulation/p0-physics-rig.ts` だけ。
 
 ## 4. 主要な責務
 
@@ -78,6 +99,21 @@ tests/
 | SimulationRunner | 固定step、episode、観測値の管理 | UI frame rateへの従属 |
 | Box2DAdapter | Body／Jointの生成・破棄・step | ゲーム固有の進化判断 |
 | ReplayStore | version付き再現情報の保存 | 原作データの取込み |
+
+M4時点の実装対応:
+
+| Component | 実装 |
+|---|---|
+| StrokeInputAdapter | `src/game/input/pointer-stroke-source.ts` |
+| StrokeGraphBuilder | `src/domain/stroke/stroke-graph-builder.ts` |
+| CreatureValidator | `src/domain/creature/creature-graph-validation.ts` |
+| GenomeFactory | `src/domain/evolution/genome.ts` |
+| JointController | `src/domain/control/joint-controller.ts`、`joint-command-source.ts` |
+| EvolutionEngine | `src/domain/evolution/evolution-engine.ts`、`selection.ts` |
+| FitnessEvaluator | `src/domain/evolution/fitness.ts` |
+| SimulationRunner | `src/simulation/episode-tracker.ts`、`episode-runner.ts`、`population-runner.ts` |
+| Box2DAdapter | `src/simulation/box2d/` |
+| ReplayStore | `src/domain/run/run-record.ts`、`src/app/evolution-run.ts` の `replayGenome` |
 
 ## 5. 状態機械
 
@@ -99,21 +135,25 @@ Replay
 
 状態遷移を中央管理し、「学習中にGraphが書き換わる」「古いWorldへUIがアクセスする」といった競合を防ぎます。
 
+**状態: 未実装（M6）。** M4時点の `bench/stroke-input.html` は、描く→変換→学習→リプレイを直列に実行するだけで、状態機械を持ちません。中央管理はM6の体験統合で実装します。
+
 ## 6. 複数個体の配置
 
-P1では、複数Worldを個体ごとに作らず、1つのWorldを再利用します。
+複数Worldを個体ごとに作らず、1つのWorldを再利用します。**M2で実装・実測済み**です。
 
-- 各個体を十分離れた仮想レーンへ配置する。
-- レーンごとに同一の地面条件を作る。
-- 個体間の接触が起きない距離と境界を保証する。
-- 表示時はworld座標をviewport座標へ写像し、選択した個体だけを描く。
-- 世代切替ではWorld自体を破棄せず、Jointを先に、Bodyを後に安全に破棄する。
+- 各個体を十分離れた仮想レーンへ配置する → `src/simulation/lane-allocator.ts`。**x方向**へ並べ、y方向には分けない（全個体が同じ地面高さになるように）。レーン間隔の既定は「骨格幅 + 12 m」。
+- レーンごとに同一の地面条件を作る → 地面は幅400 mの単一の静的Body。
+- 個体間の接触が起きない距離と境界を保証する → 距離に加えて `categoryBits`／`maskBits` で**構造的に**排除する。生物shapeは地面としか衝突しない。contact eventを分類して0件であることを検証済み。
+- 表示時はworld座標をviewport座標へ写像し、選択した個体だけを描く → `PopulationRunner.snapshots(indexes)`。表示個体数0／1／8で評価結果が**完全一致**することを検証済み。
+- 世代切替ではWorld自体を破棄せず、Jointを先に、Bodyを後に安全に破棄する → `CreatureHandle.destroy()`。100世代の反復後もshape数が基準値へ戻る。
 
-この方針はPhaser Box2Dの複数WorldおよびWorld再作成に関する公開Issueの影響を避けるために採用しました。P0では単一Worldの最小モデルだけを確認済みであり、再利用と複数レーンの実測はP1で行います。
+この方針はPhaser Box2Dの複数WorldおよびWorld再作成に関する公開Issueの影響を避けるために採用しました。実測は [M2性能記録](15-m2-population-performance.md) を参照してください。
 
 ## 7. Worker化の将来境界
 
-最初からWorker化はしません。ただし次のmessage boundaryを保ちます。
+最初からWorker化はしません。M2の実測（Population 32 で実時間の44倍）からは、headlessの計算量に余裕があり現時点でWorker化の必要はありません。ブラウザ描画を含めた計測後に再判断します。
+
+ただし次のmessage boundaryを保ちます。
 
 ```text
 Main -> Worker
@@ -132,18 +172,22 @@ Box2D IDやclass instanceではなく、構造化Clone可能な数値配列とpl
 
 ## 8. 保存形式
 
+M3で `schemaVersion: 1` として実装しました（`src/domain/run/run-record.ts`）。
+
 ```text
 RunRecord
-  schemaVersion
-  createdAt
-  graph
-  graphHash
-  bestGenome
-  seed
-  simulationParameters
-  evolutionParameters
-  runtimeVersions
-  summaryMetrics
+  schemaVersion      1
+  createdAt          ISO 8601 文字列
+  graph              CreatureGraph
+  graphHash          宣言順に依存しない16桁hex
+  seed               number
+  episode            stepSeconds / subSteps / durationSeconds / maxDisplacement
+  skeleton           joint設定（limit、torque）と body設定（density、friction、damping）
+  runtimeVersions    phaser / phaserBox2d
+  summary            steps / status / invalidReason / forwardProgress /
+                     maxForwardProgress / motorEffort
 ```
 
-破壊的なschema変更時はmigrationまたは明示的な非対応エラーを出します。
+`parseRunRecord` は、未対応の `schemaVersion` と壊れたJSONを**例外ではなく理由付きの失敗**として返します。
+
+当初案の `bestGenome` と `evolutionParameters` はまだ含めていません。ベストGenomeは `runEvolution` の戻り値 `bestEver` で扱っており、保存形式へ含めるのはM6の保存・リプレイUI実装時に判断します。

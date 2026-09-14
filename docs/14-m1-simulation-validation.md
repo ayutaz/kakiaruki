@@ -73,7 +73,7 @@ Viteの500 kB chunk警告は継続中です。M7で分割または受容を判�
 - `DEFAULT_SKELETON_SETTINGS.joint`: limit ±0.9 rad、maxMotorTorque 40、limit/motorともに有効
 - `DEFAULT_SKELETON_SETTINGS.body`: density 1、friction 0.8、linearDamping 0.02、angularDamping 0.05
 - `DEFAULT_PHYSICS_WORLD_OPTIONS`: gravity −10 m/s²、地面 half extents 200×0.5 m（上面 y = 0）、friction 0.85、sleep無効
-- `DEFAULT_EPISODE_OPTIONS`: dt 1/60 s、substep 4、6秒、座標上限 500 m
+- `DEFAULT_EPISODE_OPTIONS`: dt 1/60 s、substep 4、6秒、座標上限 500 m（M1時点。**M2で `maxDisplacement` 200 m へ変更**。§11 参照）
 
 ## 7. 自動試験で確認したこと
 
@@ -128,3 +128,16 @@ Viteの500 kB chunk警告は継続中です。M7で分割または受容を判�
 7. 背景tab復帰時のaccumulator処理。
 8. build chunk分割の要否（M7）。
 9. `EpisodeRunner` は現在 `maxForwardProgress` を0で初期化するため、後退しかしない個体の最大前進量は0になる。M3のFitness設計時に妥当性を再確認する。
+
+## 11. その後の変更（2026-09-14、M2時点）
+
+この記録はM1完了時点のものです。以後に変更した点を追記します。
+
+| 項目 | M1時点 | 変更後 | 理由 |
+|---|---|---|---|
+| 暴走検出 | `maxCoordinateMagnitude` 500 m（world原点からの絶対座標） | `maxDisplacement` 200 m（スポーン時の重心からの距離） | レーン配置では個体の絶対座標がレーン位置に比例して大きくなり、遠いレーンの正常な個体を誤判定するため。[docs/15](15-m2-population-performance.md) §9 |
+| `EpisodeRunner` の構造 | worldのstepを自分で持つ単一クラス | `EpisodeTracker`（進行とmetrics）と分離。`EpisodeRunner` はtracker + 自前のworld step | 1つのWorldで複数個体を同時に進める `PopulationRunner` と進行規則を共有するため |
+| `CreatureHandle` の定義場所 | `src/simulation/box2d/box2d-creature-factory.ts` | `src/simulation/ports/creature-port.ts` | `EpisodeRunner` と domain がBox2D adapterを推移的にも参照しないようにするため（D-009） |
+| `maxAbsCoordinate()` | 絶対座標の最大値 | `maxDistanceFrom(point)` へ置換 | 上記の暴走検出の変更に伴う |
+
+M1の受入条件の判定はこれらの変更後も変わりません。

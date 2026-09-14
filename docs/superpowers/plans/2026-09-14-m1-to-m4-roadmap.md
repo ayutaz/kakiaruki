@@ -2,6 +2,8 @@
 
 > **For agentic workers:** 各マイルストーンの詳細計画は同ディレクトリの `2026-09-14-mN-*.md` にあります。実装は必ず `superpowers:test-driven-development` に従い、Red → 失敗理由確認 → Green → refactor → 配線切断証明 → commit の順で進めます。
 
+**状態（2026-09-14）: M1〜M4 実施済み。** 各マイルストーンの実施結果は `docs/14`〜`docs/17` の検証記録を参照してください。この文書は計画時点の内容で、実装時に変更した点は各検証記録に記録しています。
+
 **Goal:** 一筆入力から生成した骨格を、複数個体・遺伝的アルゴリズムで学習させる基盤をM4まで構築する。
 
 **Spec:** `docs/12-development-plan.md`（受入条件）、`docs/13-milestone-quality-and-decision-gates.md`（完了判定）、`docs/06-architecture.md`（層の境界）
@@ -34,12 +36,14 @@ M1〜M3 は「物理と進化が成立するか」を一筆UIより先に判断�
 
 ## 各マイルストーンの成果物と完了証拠
 
-| M | 主な新規モジュール | 完了証拠ドキュメント |
-|---|---|---|
-| M1 | `src/domain/creature/`, `src/simulation/skeleton-plan.ts`, `src/simulation/box2d/`, `src/simulation/episode-runner.ts`, `src/domain/run/run-record.ts` | `docs/14-m1-simulation-validation.md` |
-| M2 | `src/simulation/population-runner.ts`, `src/simulation/lane-allocator.ts`, `bench/` | `docs/15-m2-population-performance.md` |
-| M3 | `src/domain/evolution/`（rng, genome, fitness, selection, evolution-engine） | `docs/16-m3-evolution-validation.md` |
-| M4 | `src/domain/stroke/`（resample, phase, graph-builder）, `src/game/input/` | `docs/17-m4-stroke-input-validation.md` |
+| M | 主な新規モジュール | 完了証拠ドキュメント | 状態 |
+|---|---|---|---|
+| M1 | `src/domain/creature/`, `src/simulation/skeleton-plan.ts`, `src/simulation/box2d/`, `src/simulation/episode-runner.ts`, `src/domain/run/run-record.ts` | `docs/14-m1-simulation-validation.md` | 完了 |
+| M2 | `src/simulation/population-runner.ts`, `src/simulation/lane-allocator.ts`, `bench/` | `docs/15-m2-population-performance.md` | 技術検証済み |
+| M3 | `src/domain/evolution/`（rng, genome, fitness, selection, evolution-engine）, `src/app/evolution-run.ts` | `docs/16-m3-evolution-validation.md` | 技術検証済み |
+| M4 | `src/domain/stroke/`（resample, phase, graph-builder）, `src/game/input/` | `docs/17-m4-stroke-input-validation.md` | 技術検証済み |
+
+計画時になかった追加: `src/simulation/ports/`（物理実装への依存遮断、D-009）、`src/simulation/episode-tracker.ts`（1個体の進行をWorld stepから分離）、`tests/unit/layering.test.ts`（層の依存を機械的に検査）。
 
 各証拠ドキュメントには docs/13 §8 の9項目（対象commit、実行環境、受入条件ごとの合否、実行command、Seed/fixture、性能値、自動試験で確認したこと、手動で確認したこと、持ち越し）を書きます。
 

@@ -8,6 +8,19 @@
 
 現時点では、事前調査とP0技術スパイクに加えて **M1 Simulation基盤**、**M2 Population評価**、**M3 進化loop**、**M4 単純な一筆入力** を技術検証済みです。描く → 骨格へ変換 → 複数個体を進化 → ベストをリプレイ、までが `bench/stroke-input.html` で一通り動きます。枝分かれ（M5）、体験統合（M6）、安定化と公開判断（M7）は未着手です。**人が行う確認が3件残っています**（§次に行うこと）。
 
+## マイルストーンの状態
+
+| Milestone | 内容 | 状態 | 検証記録 |
+|---|---|---|---|
+| M0 | P0技術スパイク | 完了 | [11](11-p0-technical-validation.md) |
+| M1 | Simulation基盤 | 完了 | [14](14-m1-simulation-validation.md) |
+| M2 | Population評価と性能 | 技術検証済み | [15](15-m2-population-performance.md) |
+| M3 | 進化loop | 技術検証済み | [16](16-m3-evolution-validation.md) |
+| M4 | 単純な一筆入力 | 技術検証済み | [17](17-m4-stroke-input-validation.md) |
+| M5 | 枝分かれと編集 | 未着手 | - |
+| M6 | 体験統合 | 未着手 | - |
+| M7 | 安定化と公開判断 | 未着手 | - |
+
 ## 現在の結論
 
 - **決定済み**: 最初の実装候補は `Phaser 4 + Phaser Box2D + TypeScript + Vite` とする。
@@ -27,11 +40,13 @@
 
 | ラベル | 意味 |
 |---|---|
-| **確認済み** | 公開ページまたは公式技術資料で裏付けが取れた事実 |
+| **確認済み** | 公開ページ・公式技術資料、または本プロジェクトの自動試験・実測で裏付けが取れた事実 |
 | **決定済み** | このプロジェクトで採用する方針 |
 | **提案** | 実装開始前またはPoC後に承認・調整が必要な案 |
 | **推定** | 公開仕様から合理的に推測したもの。原作内部の事実ではない |
 | **未確認** | 実測、実装、手動確認がまだないもの |
+
+マイルストーンの進行状態（未着手／Red／実装中／技術検証済み／手動確認待ち／完了／保留）は [マイルストーン品質・判断ゲート](13-milestone-quality-and-decision-gates.md) §2 に定義しています。**`技術検証済み` は「体験品質が良い」とも「公開可能」とも言いません。**
 
 ## ドキュメント一覧
 
@@ -61,10 +76,10 @@ M4まで技術検証済みです（[M4検証結果](17-m4-stroke-input-validatio
 
 **人が行う確認（3件）**
 
-1. ブラウザでの p95 frame time 計測 — [docs/15](15-m2-population-performance.md) §8（`/bench/frame-time.html`）
-2. 世代変化を視認できるかの確認 — [docs/16](16-m3-evolution-validation.md) §8（`/bench/replay.html`）
-3. 実ブラウザでのPointer／キーボード操作 — [docs/17](17-m4-stroke-input-validation.md) §8（`/bench/stroke-input.html`）
+1. ブラウザでの p95 frame time 計測 — [M2性能記録](15-m2-population-performance.md) §8（`/bench/frame-time.html`）
+2. 世代変化を視認できるかの確認 — [M3検証結果](16-m3-evolution-validation.md) §8（`/bench/replay.html`）
+3. 実ブラウザでのPointer／キーボード操作 — [M4検証結果](17-m4-stroke-input-validation.md) §8（`/bench/stroke-input.html`）
 
-**ユーザー判断が必要**: browser E2Eフレームワーク（Playwright等）を導入するか（[docs/17](17-m4-stroke-input-validation.md) §8）。
+**ユーザー判断が必要**: browser E2Eフレームワーク（Playwright等）を導入するか（[M4検証結果](17-m4-stroke-input-validation.md) §8）。
 
 次は [開発計画](12-development-plan.md) の M5 として、戻り線による枝分かれ、Node/Edgeへのsnap、Edge単位Undo、Y字・人型相当の形状を実装します。

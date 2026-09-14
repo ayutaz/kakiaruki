@@ -41,7 +41,8 @@ npm run experiment  # 5 Seed × 50世代の進化判定実験（約70秒）
 単一テスト実行:
 
 ```bash
-npx vitest run tests/joint-controller.test.ts
+npx vitest run tests/unit/joint-controller.test.ts
+npx vitest run tests/contract/            # 層まるごと
 npx vitest run -t "applies derivative damping"
 ```
 
@@ -52,24 +53,24 @@ npx vitest run -t "applies derivative damping"
 ### 層の境界（最重要・docs/06）
 
 ```text
-Phaser UI / Scene   … 入力・描画・UIのadapterのみ
+game / bench ページ  … 入力・描画・UIのadapterのみ
   ↓ commands
-Application         … use case / 状態遷移
+src/app/             … use case（GAと物理評価の結線）
   ↓
-Stroke domain (CreatureGraph) / Evolution domain (Genome, GA, Fitness)  … 純粋TypeScript
-  ↓ Simulation port
-Box2D adapter
+src/domain/          … 純粋TypeScript。stroke / creature / control / evolution / run
+  ↓ src/simulation/ports/
+src/simulation/box2d/ … Box2D adapter
 ```
 
 守るべき不変条件:
 
 - Phaser から直接 Box2D を叩かない。
-- **Box2D固有ID（`b2BodyId` 等）を domain model へ漏らさない。** 現状は `src/simulation/p0-physics-rig.ts` が唯一の隔離点で、外へは `BodySnapshot` などの数値だけを返します。
+- **Box2D固有ID（`b2BodyId` 等）を domain model へ漏らさない。** 隔離点は `src/simulation/box2d/` で、外へは `src/simulation/ports/` の型（`CreatureHandle`、`CreatureSnapshot` など数値だけ）を返します。
 - 物理時間と描画時間を分ける（`FixedStepRunner` の accumulator）。描画個体数を変えても評価結果が変わってはいけません。
 - 乱数は注入可能な Seed付き generator のみ。**domain で `Math.random()` を使わない**。
 - 保存・リプレイ形式には `schemaVersion` を持たせる。
 
-`src/` は現在 P0 用の平坦な構成です。P1以降は docs/06 の `app/ domain/ simulation/ game/ ui/ shared/` 構成へ段階的に移行します。
+`src/` は docs/06 §3 の構成へ移行済みです。未作成なのは `game/scenes` `game/rendering` `ui`（M6で作る製品UI）だけで、現在の描画は `bench/` の開発ページがCanvas 2Dで行っています。
 
 ### 現在のモジュール
 
@@ -113,9 +114,9 @@ Box2D adapter
 - 型は `src/phaser-box2d.d.ts` に、使う API だけを手書きで宣言する（新しい Box2D API を使うときはここへ追記）。
 - vendor package 自体は変更しない。
 
-`p0-physics-rig.ts` は module読み込み時に `b2CreateWorldArray()` を呼ぶ副作用を持ちます。World は `destroy()` で必ず破棄してください（テストでは `afterEach` で回収）。
+`box2d-world.ts` と `p0-physics-rig.ts` は module読み込み時に `b2CreateWorldArray()` を呼ぶ副作用を持ちます。World は `destroy()` で必ず破棄してください（テストでは `afterEach` で回収）。
 
-P1以降は **World を作り直さず1つを再利用**し、Population は同一World内の分離レーンへ配置します（D-006 / 複数World・再作成の既知Issue回避）。
+**World は作り直さず1つを再利用**し、Population は同一World内の分離レーンへ配置します（D-006 / 複数World・再作成の既知Issue回避）。M2で100世代×8個体の反復を確認済みです。
 
 ### TypeScript の癖
 
@@ -123,7 +124,7 @@ P1以降は **World を作り直さず1つを再利用**し、Population は同�
 
 ## 開発の進め方（docs/13 が規範）
 
-- **TDD必須**: 受入条件を固定 → failing test → Redの失敗理由を確認 → 最小実装 → Green → refactor → **主要配線を外すと試験が落ちることの確認**（wiring-disconnection proof）。既存の `p0-physics-rig.test.ts` が motor/limit を「無効化した対照」と比較しているのがその型です。
+- **TDD必須**: 受入条件を固定 → failing test → Redの失敗理由を確認 → 最小実装 → Green → refactor → **主要配線を外すと試験が落ちることの確認**（wiring-disconnection proof）。`tests/contract/p0-physics-rig.test.ts` が motor/limit を「無効化した対照」と比較しているのがその型です。過去に外した配線と落ちた試験は各検証記録（`docs/14`〜`docs/17`）に残しています。
 - **受入条件の数値は測定開始前に固定**します。結果を見た後に閾値を緩めない。変更する場合は元の結果・理由・影響・再試験結果を残します。
 - 「実装済み」「技術検証済み」「手動確認待ち」「完了」を混同しない。`技術検証済み` は体験品質・公開可能を意味しません。
 - マイルストーン完了時は `docs/` に検証記録を1ファイル追加し、`docs/README.md` の索引を更新します（例: `docs/14-m1-simulation-validation.md`）。記録には commit/hash、実行環境、受入条件ごとの合否、Seed、性能値、未確認事項を含めます。
@@ -144,10 +145,11 @@ Godot等へのengine切替、GA以外への変更、閉ループのMVP必須化�
 
 - 実行計画とマイルストーン受入条件: `docs/12-development-plan.md`
 - 完了判定・証拠・承認の運用: `docs/13-milestone-quality-and-decision-gates.md`
-- 層の責務とデータ境界: `docs/06-architecture.md`
-- Genome / Fitness / GAパラメータ案: `docs/05-physics-controller-and-ga.md`
-- 一筆入力→Graph変換（最大の実装難所）: `docs/04-stroke-to-graph.md`
-- P0実測と既知の制約: `docs/11-p0-technical-validation.md`
-- リスクと意思決定記録（D-001〜D-007）: `docs/09-risks-open-questions-and-decisions.md`
+- 層の責務とデータ境界と実ディレクトリ構成: `docs/06-architecture.md`
+- Genome / Fitness / GAの設計と実装値: `docs/05-physics-controller-and-ga.md`
+- 一筆入力→Graph変換（最大の実装難所）と実装値: `docs/04-stroke-to-graph.md`
+- テスト層・決定性・性能指標: `docs/08-test-quality-and-performance.md`
+- リスクと意思決定記録（D-001〜D-009）: `docs/09-risks-open-questions-and-decisions.md`
+- 検証記録: `docs/11`（P0）、`docs/14`〜`docs/17`（M1〜M4）。**実測値・fixture・未確認事項はここが正**
 
 実装と docs が矛盾した場合は、実際のコードと試験結果を確認したうえで docs を最新化します。
