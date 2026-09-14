@@ -1,5 +1,6 @@
 import { runEvolution, type BestEver, type EvolutionRunResult } from "../src/app/evolution-run.ts";
 import type { CreatureGraph } from "../src/domain/creature/creature-graph.ts";
+import { removeLastEdge } from "../src/domain/creature/graph-edit.ts";
 import { DEFAULT_EVOLUTION_CONFIG } from "../src/domain/evolution/evolution-engine.ts";
 import { genomeToCommandSource } from "../src/domain/evolution/genome.ts";
 import {
@@ -109,7 +110,9 @@ class StrokeInputPage {
         return;
       }
       event.preventDefault();
-      if (command === "undo" || command === "clear" || command === "cancel") {
+      if (command === "undo") {
+        this.undoEdge();
+      } else if (command === "clear" || command === "cancel") {
         this.clear();
       } else if (command === "confirm") {
         void this.learn();
@@ -145,6 +148,41 @@ class StrokeInputPage {
       "キャンバスの上でドラッグして一筆で描いてください。Backspaceで消去、Enterで学習。";
     this.#drawScene();
     this.#renderReplay();
+  }
+
+  /** 骨を1本だけ戻す（Ctrl+Z）。M5のEdge単位Undo。 */
+  undoEdge(): void {
+    const graph = this.#graph;
+    if (!graph || graph.edges.length <= 1) {
+      return;
+    }
+    this.#applyGraph(removeLastEdge(graph));
+    element("status").textContent =
+      `骨を1本戻しました。残り ${this.#graph!.edges.length} 本。もう一度Ctrl+Zでさらに戻せます。`;
+  }
+
+  /** Graphを差し替え、previewと骨格planを作り直す。 */
+  #applyGraph(graph: CreatureGraph): void {
+    const validated = validateCreatureGraph(graph);
+    const positions = new Map(graph.nodes.map((node) => [node.id, node.position]));
+    this.#graph = graph;
+    this.#preview = {
+      nodes: graph.nodes.map((node) => ({ id: node.id, position: node.position })),
+      edges: graph.edges.map((edge) => ({
+        id: edge.id,
+        a: positions.get(edge.nodeA)!,
+        b: positions.get(edge.nodeB)!
+      }))
+    };
+    this.#plan = validated.ok ? buildSkeletonPlan(validated.graph) : null;
+    element<HTMLButtonElement>("learn").disabled = !validated.ok;
+    element("errors").textContent = validated.ok
+      ? ""
+      : validated.errors.map((error) => `・${error.message}`).join("\n");
+    element("shape").textContent =
+      `Node ${graph.nodes.length} / Edge ${graph.edges.length}` +
+      (this.#plan ? ` → Body ${this.#plan.bones.length} / Joint ${this.#plan.joints.length}` : "");
+    this.#drawScene();
   }
 
   /**
