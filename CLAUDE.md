@@ -87,9 +87,9 @@ src/simulation/box2d/ … Box2D adapter
 | `src/domain/control/joint-command-source.ts` | 関節指令の port。M3のGenomeがこれを実装する差し替え点 |
 | `src/domain/run/run-record.ts` | `schemaVersion` 付き再現記録。未対応versionは理由付きで拒否 |
 | `src/domain/evolution/` | Seed付き乱数、Genome、Fitness、選択/交叉/変異、世代交代（すべて純粋） |
-| `src/domain/stroke/` | 一筆の点列 → `CreatureGraph` の変換パイプライン（純粋）。`stroke-retrace.ts` が戻り線＝枝分かれを判定する |
+| `src/domain/stroke/` | 一筆の点列 → `CreatureGraph` の変換パイプライン（純粋）。`stroke-retrace.ts` が戻り線＝枝分かれを判定する。長い線は拒否せず骨を粗くして収める（D-011） |
 | `src/game/input/pointer-stroke-source.ts` | DOM Pointer/キーの薄いadapter。判定はdomain側 |
-| `src/app/evolution-run.ts` | GAと物理評価を結ぶApplication層。対照群とリプレイもここ。`world` を渡せば作り直さない |
+| `src/app/evolution-run.ts` | GAと物理評価を結ぶApplication層。対照群とリプレイもここ。`world` を渡せば作り直さない。`EvolutionRunner` で1世代ずつ進められる |
 | `src/app/observation-session.ts` | 観察フェーズの物理資源。Worldは画面の寿命で1つ。学習へも同じWorldを渡す |
 | `src/ui/app-state.ts` | 画面の状態と遷移。純粋。DOM・物理を知らない。学習中の操作禁止もここ |
 | `src/game/rendering/scene-renderer.ts` | Canvas 2Dへ映すだけのadapter |

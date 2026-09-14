@@ -163,13 +163,36 @@ npm run dev
 | 2 | 製品画面でPhaserを使うか、Canvas 2Dで足りるか | **Canvas 2Dで実装** | Phaserは `bench/p0-demo.html` のみ。build出力が 1,541 kB → 215 kB になった。Phaserを外す判断は[docs/13](13-milestone-quality-and-decision-gates.md) §7 の「engine切替」に近いため、人の確認が要る |
 | 3 | 閉ループ・自己交差・最大Node次数（M5から継続） | 拒否のまま | [docs/18](18-m5-branching-validation.md) §11 |
 
+## 11. その後の変更（2026-09-14）
+
+「骨が 20 本になり、上限の 14 本を超えます」で入り組んだ絵が描けないという報告があり、**長いというだけで拒否しない**よう変えました（[D-011](09-risks-open-questions-and-decisions.md)）。
+
+| 項目 | 変更前 | 変更後 |
+|---|---:|---:|
+| 骨数上限 | 14 | **20** |
+| `DEFAULT_GRAPH_LIMITS.maxEdgeCount` | 16 | **24** |
+| `DEFAULT_GRAPH_LIMITS.maxTotalLength` | 24 m | **40 m** |
+| 上限超過時 | 拒否 | **骨を粗くして収める** |
+
+骨20本では学習が20世代で約9.5秒かかるため、`EvolutionRunner` を追加して**1世代ずつフレームに分けて**進めるようにしました。画面には「学習中… 7 / 20 世代」と進捗が出ます。`runEvolution` はこれを最後まで進めるだけの包みで、結果は完全に一致します（`gives the same result as running the whole thing at once`）。
+
+骨数別の実測（Population 32・6秒episode・headless）:
+
+| 骨数 | 1世代の評価 | 実時間比 | 20世代の合計 |
+|---:|---:|---:|---:|
+| 14 | 0.390 秒 | 15.4x | 7.8 秒 |
+| 18 | 0.465 秒 | 12.9x | 9.3 秒 |
+| 20 | 0.474 秒 | 12.6x | **9.5 秒** |
+| 24 | 0.564 秒 | 10.6x | 11.3 秒 |
+
 ## 10. 未確認事項と持ち越し
 
 1. **実ブラウザでの体験確認**（§8）。M6の完了条件。
 2. **browser E2E の導入可否**（§9）。
 3. **製品画面からPhaserを外した判断の追認**（§9）。`src/game/scenes/` は作っていません。
-4. 学習中の同期処理。Population 32・20世代で1.8〜3.3秒、骨14本なら約6秒、画面が止まります。Web Worker化か分割実行はM7以降。
+4. 学習中の同期処理。**1世代ずつフレームに分けて進めるようにしました**（D-011）。1世代は骨20本で約0.5秒かかるため、その間は止まります。世代内をさらに細かく分けるか、Web Worker化するかはM7以降。
 5. 「世代0のベスト」表示と、観察に出る個体の対応（[docs/17](17-m4-stroke-input-validation.md) §11）。観察は世代ごとの fitness 最良を並べるため、`bestNormalizedForwardProgress` の表示とは別個体のことがあります。
-6. 表示は世代の代表個体のみで、**Population全体の同時表示はしていません**。原作の「表示個体数」に相当する体験は未実装です。
-7. mobile / Safari は対象外のまま（[docs/13](13-milestone-quality-and-decision-gates.md) §7）。
-8. M2〜M5から持ち越しの人による確認（[docs/13](13-milestone-quality-and-decision-gates.md) §10）。
+6. 骨20本での p95 frame time は未測定です（M7）。
+7. 表示は世代の代表個体のみで、**Population全体の同時表示はしていません**。原作の「表示個体数」に相当する体験は未実装です。
+8. mobile / Safari は対象外のまま（[docs/13](13-milestone-quality-and-decision-gates.md) §7）。
+9. M2〜M5から持ち越しの人による確認（[docs/13](13-milestone-quality-and-decision-gates.md) §10）。
