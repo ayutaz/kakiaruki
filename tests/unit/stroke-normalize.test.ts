@@ -4,22 +4,37 @@ import {
   normalizeStroke,
   polylineLength,
   resampleByDistance,
+  strokeCentroid,
   DEFAULT_NORMALIZE_OPTIONS
 } from "../../src/domain/stroke/stroke-normalize.ts";
 import { STROKE_VIEWPORT, lShapeStroke, straightStroke } from "../fixtures/strokes.ts";
 
-function centroid(points: readonly { x: number; y: number }[]) {
-  const sum = points.reduce(
-    (total, point) => ({ x: total.x + point.x, y: total.y + point.y }),
-    { x: 0, y: 0 }
-  );
-  return { x: sum.x / points.length, y: sum.y / points.length };
-}
+describe("strokeCentroid", () => {
+  it("does not move when the same path is sampled at a different rate", () => {
+    const sparse = strokeCentroid(lShapeStroke(30));
+    const dense = strokeCentroid(lShapeStroke(3));
+
+    expect(dense.x).toBeCloseTo(sparse.x, 6);
+    expect(dense.y).toBeCloseTo(sparse.y, 6);
+  });
+
+  it("falls back to the only point of a stroke that never moved", () => {
+    expect(strokeCentroid([{ x: 5, y: 7, time: 0 }])).toEqual({ x: 5, y: 7 });
+    expect(
+      strokeCentroid([
+        { x: 5, y: 7, time: 0 },
+        { x: 5, y: 7, time: 8 }
+      ])
+    ).toEqual({ x: 5, y: 7 });
+  });
+});
 
 describe("normalizeStroke", () => {
-  it("moves the stroke centroid to the origin", () => {
+  it("moves the length weighted centroid of the stroke to the origin", () => {
     const normalized = normalizeStroke(lShapeStroke(), STROKE_VIEWPORT);
-    const centre = centroid(normalized);
+    const centre = strokeCentroid(
+      normalized.map((point) => ({ x: point.x, y: point.y, time: 0 }))
+    );
 
     expect(centre.x).toBeCloseTo(0, 9);
     expect(centre.y).toBeCloseTo(0, 9);

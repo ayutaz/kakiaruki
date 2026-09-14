@@ -35,19 +35,43 @@ export function normalizeStroke(
   const { worldShortSide } = { ...DEFAULT_NORMALIZE_OPTIONS, ...options };
   const scale = worldShortSide / Math.min(viewport.width, viewport.height);
 
-  let sumX = 0;
-  let sumY = 0;
-  for (const point of points) {
-    sumX += point.x;
-    sumY += point.y;
-  }
-  const centreX = sumX / points.length;
-  const centreY = sumY / points.length;
+  const { x: centreX, y: centreY } = strokeCentroid(points);
 
   return points.map((point) => ({
     x: (point.x - centreX) * scale,
     y: -(point.y - centreY) * scale
   }));
+}
+
+/**
+ * 線長で重み付けした重心。点の単純平均だと入力イベント密度で位置が動いてしまうため、
+ * 同じ軌跡なら密度が違っても同じ値になるこちらを使う。
+ */
+export function strokeCentroid(points: readonly StrokePoint[]): { x: number; y: number } {
+  const first = points[0]!;
+  if (points.length === 1) {
+    return { x: first.x, y: first.y };
+  }
+
+  let weightedX = 0;
+  let weightedY = 0;
+  let totalLength = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    const from = points[index - 1]!;
+    const to = points[index]!;
+    const segmentLength = Math.hypot(to.x - from.x, to.y - from.y);
+    if (segmentLength === 0) {
+      continue;
+    }
+    weightedX += ((from.x + to.x) / 2) * segmentLength;
+    weightedY += ((from.y + to.y) / 2) * segmentLength;
+    totalLength += segmentLength;
+  }
+
+  if (totalLength === 0) {
+    return { x: first.x, y: first.y };
+  }
+  return { x: weightedX / totalLength, y: weightedY / totalLength };
 }
 
 export function polylineLength(points: readonly Vector2[]): number {
