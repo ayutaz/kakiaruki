@@ -69,16 +69,32 @@ export function detectCorners(
   return corners;
 }
 
+/**
+ * 外積を0とみなす幅。座標はメートルで、segmentは `resampleSpacing` 程度の長さなので、
+ * この値は「直線から約 1e-8 m ずれている」に相当する。
+ * これより小さい値は丸め誤差であり、符号の違いを交差と読んではいけない。
+ */
+const COLLINEAR_EPSILON = 1e-9;
+
+function crossSign(value: number): number {
+  if (value > COLLINEAR_EPSILON) {
+    return 1;
+  }
+  return value < -COLLINEAR_EPSILON ? -1 : 0;
+}
+
 function segmentsCross(a1: Vector2, a2: Vector2, b1: Vector2, b2: Vector2): boolean {
   const cross = (ox: number, oy: number, px: number, py: number, qx: number, qy: number): number =>
     (px - ox) * (qy - oy) - (py - oy) * (qx - ox);
 
-  const d1 = cross(b1.x, b1.y, b2.x, b2.y, a1.x, a1.y);
-  const d2 = cross(b1.x, b1.y, b2.x, b2.y, a2.x, a2.y);
-  const d3 = cross(a1.x, a1.y, a2.x, a2.y, b1.x, b1.y);
-  const d4 = cross(a1.x, a1.y, a2.x, a2.y, b2.x, b2.y);
+  const d1 = crossSign(cross(b1.x, b1.y, b2.x, b2.y, a1.x, a1.y));
+  const d2 = crossSign(cross(b1.x, b1.y, b2.x, b2.y, a2.x, a2.y));
+  const d3 = crossSign(cross(a1.x, a1.y, a2.x, a2.y, b1.x, b1.y));
+  const d4 = crossSign(cross(a1.x, a1.y, a2.x, a2.y, b2.x, b2.y));
 
-  return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
+  // 両端が厳密に反対側にある場合だけを交差とする。
+  // 一直線上（符号0）は交差ではなく、戻り線としてM5で扱う対象。
+  return d1 * d2 < 0 && d3 * d4 < 0;
 }
 
 /**

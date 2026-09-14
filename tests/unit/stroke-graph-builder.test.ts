@@ -16,6 +16,7 @@ import {
   lShapeStroke,
   repeatedPointStroke,
   selfIntersectingStroke,
+  shallowWaveStroke,
   straightStroke,
   stubTailStroke,
   tooShortStroke,
@@ -164,6 +165,12 @@ describe("buildGraphFromStroke", () => {
 
   it("rejects a stroke that is too short to make a bone", () => {
     expect(codesOf(build(tooShortStroke()))).toContain("stroke-too-short");
+  });
+
+  it("accepts a shallow wave instead of calling it self intersecting", () => {
+    const result = expectOk(build(shallowWaveStroke()));
+
+    expect(result.preview.edges.length).toBeGreaterThan(1);
   });
 
   it("rejects a self intersecting stroke instead of guessing what it means", () => {

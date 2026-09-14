@@ -97,6 +97,22 @@ export const selfIntersectingStroke = (stepPx = 12): readonly StrokePoint[] =>
 export const closedLoopStroke = (stepPx = 12): readonly StrokePoint[] =>
   sampleStroke(CLOSED_LOOP_PATH, stepPx);
 
+/**
+ * 振幅の浅い波線。人が普通に描く「ゆるい波」に近い。
+ * 交差していないのに、まっすぐな部分の外積が丸め誤差で符号違いに見えることがある。
+ */
+export const SHALLOW_WAVE_PATH: ScreenPath = [
+  [120, 250],
+  [200, 200],
+  [280, 250],
+  [360, 200],
+  [440, 250],
+  [520, 210]
+];
+
+export const shallowWaveStroke = (stepPx = 6): readonly StrokePoint[] =>
+  sampleStroke(SHALLOW_WAVE_PATH, stepPx);
+
 /** 終端に最小骨長未満の短い突起がある線。短Edge統合が効かないと拒否される。 */
 export const STUB_TAIL_PATH: ScreenPath = [
   [140, 200],
