@@ -60,7 +60,6 @@
 9. [リスク・未確定事項・意思決定記録](09-risks-open-questions-and-decisions.md)
 10. [参考資料](10-references.md)
 11. [P0技術検証結果](11-p0-technical-validation.md)
-12. [P0完了後の開発計画](12-development-plan.md)
 13. [マイルストーン品質・判断ゲート](13-milestone-quality-and-decision-gates.md)
 14. [M1 Simulation基盤 検証結果](14-m1-simulation-validation.md)
 15. [M2 Population評価と性能 検証結果](15-m2-population-performance.md)
@@ -72,7 +71,7 @@
 
 開発用のページと計測スクリプトは `bench/` にあります（`npm run dev` で `/bench/stroke-input.html` などを開けます）。
 
-番号に欠番があります（07）。リリース時に、役目を終えた作業文書（PoCロードマップと各マイルストーンの実装計画）を削除したためです。内容は git 履歴に残っています。
+番号に欠番があります（07、12）。リリース時に、役目を終えた作業文書（PoCロードマップ、開発計画、各マイルストーンの実装計画）を削除したためです。**各マイルストーンの受入条件と合否は、対応する検証記録が逐語で持っています。** 削除した内容は git 履歴に残っています。
 
 ## 次に行うこと
 
@@ -92,4 +91,4 @@ M6まで技術検証済みです（[M6検証結果](19-m6-experience-review.md)�
 - 製品画面でPhaserを使うか、Canvas 2Dで足りるか（[M6検証結果](19-m6-experience-review.md) §9）。現在はCanvas 2Dで実装し、build出力が 1,541 kB → 215 kB になりました。
 - 閉ループ・自己交差・最大Node次数をMVPへ含めるか（[M5検証結果](18-m5-branching-validation.md) §11）。
 
-次は [開発計画](12-development-plan.md) の M7 として、長時間run、ChromiumとFirefoxでの完走、依存の再確認、公開判断の材料を揃えます。
+実装のマイルストーンは M7 まで終わりました。残っているのは人の確認と決定です。

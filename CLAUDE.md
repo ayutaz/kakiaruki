@@ -156,7 +156,7 @@ Godot等へのengine切替、GA以外への変更、閉ループのMVP必須化�
 
 `docs/README.md` が索引です。作業前に該当するものを読んでください。
 
-- 実行計画とマイルストーン受入条件: `docs/12-development-plan.md`
+- マイルストーンごとの受入条件と合否: 各検証記録（`docs/11`、`docs/14`〜`docs/20`）の「受入条件ごとの合否」
 - 完了判定・証拠・承認の運用: `docs/13-milestone-quality-and-decision-gates.md`
 - 層の責務とデータ境界と実ディレクトリ構成: `docs/06-architecture.md`
 - Genome / Fitness / GAの設計と実装値: `docs/05-physics-controller-and-ga.md`

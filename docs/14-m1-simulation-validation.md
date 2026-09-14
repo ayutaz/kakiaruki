@@ -4,7 +4,7 @@
 
 ## 1. 結論
 
-M1の受入条件（[開発計画](12-development-plan.md) §5）をすべて満たしました。Phaser Sceneを起動せずに、`CreatureGraph` の検証から Body／Joint 生成、地面上での episode 実行、metrics 収集、完全な cleanup までを実行できます。
+M1の受入条件（§5）をすべて満たしました。Phaser Sceneを起動せずに、`CreatureGraph` の検証から Body／Joint 生成、地面上での episode 実行、metrics 収集、完全な cleanup までを実行できます。
 
 この結果は**単一個体**の基盤が成立したことを示すものです。Population並列評価、遺伝的アルゴリズム、自由描画からのGraph生成、性能実測はまだ行っていません。
 
