@@ -6,7 +6,7 @@
 
 `one-stroke-evolution-web` は、公開されているゲーム『一筆進化』の体験を参考に、Web向けの独立した再現実装が技術的に成立するかを検証するためのプロジェクトです。
 
-現時点では、事前調査とP0技術スパイクに加えて **M1 Simulation基盤**、**M2 Population評価**、**M3 進化loop**、**M4 単純な一筆入力** を技術検証済みです。描く → 骨格へ変換 → 複数個体を進化 → ベストをリプレイ、までが `bench/stroke-input.html` で一通り動きます。枝分かれ（M5）、体験統合（M6）、安定化と公開判断（M7）は未着手です。**人が行う確認が3件残っています**（§次に行うこと）。
+現時点では、事前調査とP0技術スパイクに加えて **M1 Simulation基盤**、**M2 Population評価**、**M3 進化loop**、**M4 単純な一筆入力**、**M5 枝分かれと編集** を技術検証済みです。描く → 骨格へ変換（枝分かれ可）→ 複数個体を進化 → ベストをリプレイ、までが `bench/stroke-input.html` で一通り動きます。体験統合（M6）、安定化と公開判断（M7）は未着手です。**人が行う確認が残っています**（§次に行うこと）。
 
 ## マイルストーンの状態
 
@@ -17,7 +17,7 @@
 | M2 | Population評価と性能 | 技術検証済み | [15](15-m2-population-performance.md) |
 | M3 | 進化loop | 技術検証済み | [16](16-m3-evolution-validation.md) |
 | M4 | 単純な一筆入力 | 技術検証済み | [17](17-m4-stroke-input-validation.md) |
-| M5 | 枝分かれと編集 | 未着手 | - |
+| M5 | 枝分かれと編集 | 技術検証済み | [18](18-m5-branching-validation.md) |
 | M6 | 体験統合 | 未着手 | - |
 | M7 | 安定化と公開判断 | 未着手 | - |
 
@@ -67,19 +67,24 @@
 15. [M2 Population評価と性能 検証結果](15-m2-population-performance.md)
 16. [M3 進化loop 検証結果](16-m3-evolution-validation.md)
 17. [M4 単純な一筆入力 検証結果](17-m4-stroke-input-validation.md)
+18. [M5 枝分かれと編集 検証結果](18-m5-branching-validation.md)
 
 実装計画は `superpowers/plans/` にあります。開発用のページと計測スクリプトは `bench/` にあります（`npm run dev` で `/bench/stroke-input.html` などを開けます）。
 
 ## 次に行うこと
 
-M4まで技術検証済みです（[M4検証結果](17-m4-stroke-input-validation.md)）。
+M5まで技術検証済みです（[M5検証結果](18-m5-branching-validation.md)）。
 
-**人が行う確認（3件）**
+**人が行う確認（4件）**
 
 1. ブラウザでの p95 frame time 計測 — [M2性能記録](15-m2-population-performance.md) §8（`/bench/frame-time.html`）
 2. 世代変化を視認できるかの確認 — [M3検証結果](16-m3-evolution-validation.md) §8（`/bench/replay.html`）
 3. 実ブラウザでのPointer／キーボード操作 — [M4検証結果](17-m4-stroke-input-validation.md) §8（`/bench/stroke-input.html`）
+4. 枝分かれ（なぞって戻る）とCtrl+ZのUndo — [M5検証結果](18-m5-branching-validation.md) §10（`/bench/stroke-input.html`）
 
-**ユーザー判断が必要**: browser E2Eフレームワーク（Playwright等）を導入するか（[M4検証結果](17-m4-stroke-input-validation.md) §8）。
+**ユーザー判断が必要**
 
-次は [開発計画](12-development-plan.md) の M5 として、戻り線による枝分かれ、Node/Edgeへのsnap、Edge単位Undo、Y字・人型相当の形状を実装します。
+- browser E2Eフレームワーク（Playwright等）を導入するか（[M4検証結果](17-m4-stroke-input-validation.md) §8）。
+- 閉ループ・自己交差・最大Node次数をMVPへ含めるか（[M5検証結果](18-m5-branching-validation.md) §11）。M5では安全に拒否したままM6へ進みました。
+
+次は [開発計画](12-development-plan.md) の M6 として、描く・学習・観察・リプレイ・描き直しを一続きの画面へまとめます。

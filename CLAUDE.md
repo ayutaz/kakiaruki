@@ -8,15 +8,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 体験の中心は「プレイヤーが一筆で骨格を描く → 同じ形の複数個体に異なる関節制御パラメータを与える → 数秒の物理シミュレーションで移動能力を評価する → GAで世代交代する」。**形態は進化させず、関節の動かし方（controller）だけを進化させます**（D-003）。
 
-現在地点は **M4（単純な一筆入力）まで技術検証済み**。描く → `CreatureGraph` へ変換 → 1 World内のレーンで複数個体を評価 → GAで世代交代 → ベストをリプレイ、までが動きます。次工程は **M5: 枝分かれと編集**（戻り線、snap、Edge単位Undo）です。
+現在地点は **M5（枝分かれと編集）まで技術検証済み**。描く → `CreatureGraph` へ変換（なぞって戻ると枝分かれ）→ 1 World内のレーンで複数個体を評価 → GAで世代交代 → ベストをリプレイ、までが動きます。次工程は **M6: 体験統合**（製品UI、状態遷移、速度、停止・再開）です。
 
-**人が行う確認が3件残っています**（`npm run dev` 後にブラウザで開く）:
+**人が行う確認が4件残っています**（`npm run dev` 後にブラウザで開く）:
 
 | 何を | どこで | 記録先 |
 |---|---|---|
 | p95 frame time の計測 | `/bench/frame-time.html` | `docs/15` §8 |
 | 世代変化を視認できるか | `/bench/replay.html` | `docs/16` §8 |
 | Pointer / キーボード操作 | `/bench/stroke-input.html` | `docs/17` §8 |
+| 枝分かれとCtrl+ZのUndo | `/bench/stroke-input.html` | `docs/18` §10 |
 
 進捗は `docs/README.md`、実装計画は `docs/superpowers/plans/` を参照。
 
@@ -80,11 +81,12 @@ src/simulation/box2d/ … Box2D adapter
 | `src/domain/creature/creature-graph.ts` | `CreatureGraph` 型と `DEFAULT_GRAPH_LIMITS`、`ValidatedCreatureGraph` ブランド型 |
 | `src/domain/creature/creature-graph-validation.ts` | 17種の不変条件を error code で返す。例外は投げない |
 | `src/domain/creature/graph-hash.ts` | 宣言順に依存しない形のhash |
+| `src/domain/creature/graph-edit.ts` | Graphの純粋な編集。Edge分割・短Edge統合（分岐点は残す）・Edge単位Undo |
 | `src/domain/control/joint-controller.ts` | 角度誤差 → motor speed の PD制御。最短角度差を使い clamp する |
 | `src/domain/control/joint-command-source.ts` | 関節指令の port。M3のGenomeがこれを実装する差し替え点 |
 | `src/domain/run/run-record.ts` | `schemaVersion` 付き再現記録。未対応versionは理由付きで拒否 |
 | `src/domain/evolution/` | Seed付き乱数、Genome、Fitness、選択/交叉/変異、世代交代（すべて純粋） |
-| `src/domain/stroke/` | 一筆の点列 → `CreatureGraph` の変換パイプライン（純粋） |
+| `src/domain/stroke/` | 一筆の点列 → `CreatureGraph` の変換パイプライン（純粋）。`stroke-retrace.ts` が戻り線＝枝分かれを判定する |
 | `src/game/input/pointer-stroke-source.ts` | DOM Pointer/キーの薄いadapter。判定はdomain側 |
 | `src/app/evolution-run.ts` | GAと物理評価を結ぶApplication層。対照群とリプレイもここ。`world` を渡せば作り直さない |
 | `src/simulation/skeleton-plan.ts` | Graph → Bone/Joint の幾何記述（純粋）。Box2Dを知らない |
