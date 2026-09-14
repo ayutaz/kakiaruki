@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 
+import { runEvolution } from "../../src/app/evolution-run.ts";
 import { ObservationSession } from "../../src/app/observation-session.ts";
+import { DEFAULT_EVOLUTION_CONFIG } from "../../src/domain/evolution/evolution-engine.ts";
 import { validateCreatureGraph } from "../../src/domain/creature/creature-graph-validation.ts";
 import { createRandomGenome } from "../../src/domain/evolution/genome.ts";
 import { createSeededRandom } from "../../src/domain/evolution/seeded-random.ts";
@@ -96,6 +98,27 @@ describe("observation session", () => {
       slow.results()[0]!.endCenterOfMass.x,
       9
     );
+  });
+
+  it("shares its world with the learning runs of the same screen", () => {
+    // 画面を開いたまま何度も学習し直しても、Worldを作り足さない（D-006）。
+    // phaser-box2d は破棄したworld slotを再利用しないため、作り足すと32回で
+    // 確保に失敗し、ページが二度と動かなくなる。
+    const session = makeSession();
+
+    for (let index = 0; index < 40; index += 1) {
+      runEvolution({
+        graph: zigzag6,
+        seed: 1,
+        generations: 1,
+        evolution: { ...DEFAULT_EVOLUTION_CONFIG, populationSize: 4, eliteCount: 1 },
+        episode: { durationSeconds: 0.2 },
+        createdAt: "2026-09-14T00:00:00.000Z",
+        world: session.physicsWorld
+      });
+    }
+
+    expect(session.shapeCount()).toBe(1);
   });
 
   it("shows only the individuals the screen asks for", () => {

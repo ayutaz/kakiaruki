@@ -49,6 +49,14 @@ export class ObservationSession {
     maxStepsPerFrame: ObservationSession.MAX_STEPS_PER_FRAME
   });
 
+  /**
+   * この画面が使う物理World。学習（`runEvolution`）へも同じものを渡すこと。
+   * Worldを作り足すと32個で確保に失敗し、ページが二度と動かなくなる（D-006）。
+   */
+  get physicsWorld(): PhysicsWorld {
+    return this.#physicsWorld();
+  }
+
   get stepCount(): number {
     return this.#runner?.stepCount ?? 0;
   }

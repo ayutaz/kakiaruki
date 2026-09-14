@@ -252,7 +252,9 @@ class Screen {
         generations,
         evolution: { ...DEFAULT_EVOLUTION_CONFIG, populationSize },
         episode: { durationSeconds: EPISODE_SECONDS },
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        // 画面の寿命でWorldは1つ。学習と観察で同じものを使う（D-006）。
+        world: this.#session.physicsWorld
       });
       const wallSeconds = (performance.now() - started) / 1000;
 
