@@ -6,6 +6,7 @@ import type { Vector2 } from "../../src/shared/vector2.ts";
 import {
   STROKE_VIEWPORT,
   hairpinStroke,
+  humanoidStroke,
   inwardSpiralStroke,
   lShapeStroke,
   nearMissStroke,
@@ -31,6 +32,12 @@ describe("detectRetrace", () => {
     expect(spans).toHaveLength(1);
     expect(spans[0]!.branchIndex).toBeLessThan(spans[0]!.start);
     expect(spans[0]!.end).toBeGreaterThan(spans[0]!.start);
+  });
+
+  it("finds both returns of a humanoid stroke", () => {
+    // 胴→肩へ戻る、左腕→肩へ戻る、の2回。1回でも取りこぼすと、戻った区間が
+    // そのまま骨として残り、胴に骨が二重に重なる。
+    expect(detectRetrace(prepared(humanoidStroke()))).toHaveLength(2);
   });
 
   it("does not call a line that merely runs alongside a retrace", () => {

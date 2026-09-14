@@ -5,14 +5,17 @@ export interface RetraceOptions {
   readonly snapDistance: number;
   /** 戻りと認めるのに必要な最小の長さ [m]。これ未満は折れ曲がりとして扱う。 */
   readonly minRetraceLength: number;
-  /** 直前の何点を「往路」から除くか。折り返しの頂点付近を戻りと誤認しないための幅。 */
+  /**
+   * 直前の何点を「往路」から除くか。折り返しの頂点付近を戻りと誤認しないための幅。
+   * 大きすぎると短い戻り（人型の胴→肩）を取りこぼし、小さすぎると折れ曲がりを戻りと誤認する。
+   */
   readonly lookbackGap: number;
 }
 
 export const DEFAULT_RETRACE_OPTIONS: RetraceOptions = {
   snapDistance: 0.22,
   minRetraceLength: 0.5,
-  lookbackGap: 6
+  lookbackGap: 4
 };
 
 export interface RetraceSpan {

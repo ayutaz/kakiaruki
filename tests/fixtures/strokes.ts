@@ -191,7 +191,7 @@ export const inwardSpiralStroke = (stepPx = 6): readonly StrokePoint[] =>
 
 /**
  * 人型相当。胴を下から上へ描き、肩まで戻って左腕、肩へ戻って右腕を伸ばす。
- * 分岐点が1つ、葉が3つになる。
+ * 肩が次数4の分岐点になり、頭・足・左手・右手の4つが葉になる。
  */
 export const HUMANOID_PATH: ScreenPath = [
   [320, 400],

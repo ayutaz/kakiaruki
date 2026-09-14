@@ -233,9 +233,9 @@ describe("buildGraphFromStroke", () => {
     const result = expectOk(build(humanoidStroke()));
     const degrees = [...degreesOf(result.graph).values()];
 
-    // 胴・左腕・右腕の3本が1つの節点から出る。
-    expect(Math.max(...degrees)).toBeGreaterThanOrEqual(3);
-    expect(degrees.filter((degree) => degree === 1)).toHaveLength(3);
+    // 肩から「頭・足・左腕・右腕」の4本が出る。
+    expect(Math.max(...degrees)).toBe(4);
+    expect(degrees.filter((degree) => degree === 1)).toHaveLength(4);
     expect(validateCreatureGraph(result.graph).ok).toBe(true);
   });
 
