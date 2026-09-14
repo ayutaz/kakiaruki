@@ -138,12 +138,13 @@ function mergeShortEdges(nodePoints: readonly Vector2[], minEdgeLength: number):
 
 /** docs/04 §6: rootはID順ではなく、重心に最も近い節点から決める。 */
 function chooseRootIndex(nodePoints: readonly Vector2[]): number {
-  const centre = nodePoints.reduce(
-    (total, point) => ({ x: total.x + point.x, y: total.y + point.y }),
-    { x: 0, y: 0 }
-  );
-  centre.x /= nodePoints.length;
-  centre.y /= nodePoints.length;
+  let sumX = 0;
+  let sumY = 0;
+  for (const point of nodePoints) {
+    sumX += point.x;
+    sumY += point.y;
+  }
+  const centre: Vector2 = { x: sumX / nodePoints.length, y: sumY / nodePoints.length };
 
   let bestIndex = 0;
   let bestDistance = Number.POSITIVE_INFINITY;

@@ -17,6 +17,7 @@ import {
   repeatedPointStroke,
   selfIntersectingStroke,
   straightStroke,
+  stubTailStroke,
   tooShortStroke,
   zigzagStroke
 } from "../fixtures/strokes.ts";
@@ -95,6 +96,16 @@ describe("buildGraphFromStroke", () => {
         );
         expect(length).toBeLessThanOrEqual(DEFAULT_STROKE_GRAPH_OPTIONS.maxEdgeLength + 1e-9);
       }
+    }
+  });
+
+  it("merges a stub shorter than the minimum bone instead of rejecting the stroke", () => {
+    const { graph } = expectOk(build(stubTailStroke()));
+
+    for (const length of edgeLengths(graph)) {
+      expect(length).toBeGreaterThanOrEqual(
+        DEFAULT_STROKE_GRAPH_OPTIONS.minEdgeLength - 1e-9
+      );
     }
   });
 

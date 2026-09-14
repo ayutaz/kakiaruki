@@ -97,6 +97,16 @@ export const selfIntersectingStroke = (stepPx = 12): readonly StrokePoint[] =>
 export const closedLoopStroke = (stepPx = 12): readonly StrokePoint[] =>
   sampleStroke(CLOSED_LOOP_PATH, stepPx);
 
+/** 終端に最小骨長未満の短い突起がある線。短Edge統合が効かないと拒否される。 */
+export const STUB_TAIL_PATH: ScreenPath = [
+  [140, 200],
+  [430, 200],
+  [430, 184]
+];
+
+export const stubTailStroke = (stepPx = 8): readonly StrokePoint[] =>
+  sampleStroke(STUB_TAIL_PATH, stepPx);
+
 /** 短すぎる線。骨1本にも足りない。 */
 export const tooShortStroke = (): readonly StrokePoint[] =>
   sampleStroke(
