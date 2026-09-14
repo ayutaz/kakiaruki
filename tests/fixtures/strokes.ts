@@ -135,6 +135,60 @@ export const STUB_TAIL_PATH: ScreenPath = [
 export const stubTailStroke = (stepPx = 8): readonly StrokePoint[] =>
   sampleStroke(STUB_TAIL_PATH, stepPx);
 
+/** Y字。縦棒を上へ描き、途中まで戻ってから右上へ伸ばす。 */
+export const Y_BRANCH_PATH: ScreenPath = [
+  [320, 400],
+  [320, 160],
+  [320, 250],
+  [470, 150]
+];
+
+export const yBranchStroke = (stepPx = 6): readonly StrokePoint[] =>
+  sampleStroke(Y_BRANCH_PATH, stepPx);
+
+/**
+ * 折り返して並走するだけの線。往路との間隔は40 px（約0.5 m）で、
+ * 戻りとみなす距離（0.22 m）より離れている。
+ */
+export const NEAR_MISS_PATH: ScreenPath = [
+  [120, 360],
+  [420, 360],
+  [420, 320],
+  [140, 320]
+];
+
+export const nearMissStroke = (stepPx = 6): readonly StrokePoint[] =>
+  sampleStroke(NEAR_MISS_PATH, stepPx);
+
+/**
+ * 20度ほどの鋭いV字。頂点の近くだけ往路と重なるが、重なる長さが短いので
+ * 戻り線ではなく折れ曲がりとして扱う。
+ */
+export const HAIRPIN_PATH: ScreenPath = [
+  [277, 400],
+  [320, 150],
+  [363, 400]
+];
+
+export const hairpinStroke = (stepPx = 6): readonly StrokePoint[] =>
+  sampleStroke(HAIRPIN_PATH, stepPx);
+
+/**
+ * 内側へ巻き込む線。最後の区間が最初の区間と15 px（約0.19 m）しか離れていないが、
+ * 進行方向は同じなので戻り線ではない。
+ */
+export const INWARD_SPIRAL_PATH: ScreenPath = [
+  [120, 300],
+  [420, 300],
+  [420, 240],
+  [140, 240],
+  [140, 285],
+  [400, 285]
+];
+
+export const inwardSpiralStroke = (stepPx = 6): readonly StrokePoint[] =>
+  sampleStroke(INWARD_SPIRAL_PATH, stepPx);
+
 /** 短すぎる線。骨1本にも足りない。 */
 export const tooShortStroke = (): readonly StrokePoint[] =>
   sampleStroke(
