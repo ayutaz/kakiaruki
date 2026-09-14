@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 枝分かれとCtrl+ZのUndo | `/bench/stroke-input.html` | `docs/18` §10 |
 | **製品画面の体験（M6判断ゲート）** | `/` | `docs/19` §8 |
 
-進捗は `docs/README.md`、実装計画は `docs/superpowers/plans/` を参照。
+進捗と設計は `docs/README.md` を参照。実装計画（作業手順書）はリリース時に削除しました。
 
 ## コマンド
 

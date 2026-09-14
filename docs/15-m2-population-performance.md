@@ -13,7 +13,6 @@ M2の受入条件（[開発計画](12-development-plan.md) §6）のうち、**�
 | 項目 | 値 |
 |---|---|
 | commit | `c97cccb` |
-| 実装計画 | `docs/superpowers/plans/2026-09-14-m2-population-performance.md` |
 
 ## 3. 実行環境
 

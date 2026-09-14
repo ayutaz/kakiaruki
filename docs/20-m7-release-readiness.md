@@ -21,7 +21,6 @@
 | 項目 | 値 |
 |---|---|
 | release candidate | §10 |
-| 実装計画 | `docs/superpowers/plans/2026-09-14-m7-release-readiness.md` |
 | 長時間run | `bench/soak.ts`（`npm run soak`） |
 | 回帰試験 | `tests/integration/long-run.test.ts` |
 

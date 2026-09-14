@@ -18,7 +18,6 @@ M6の受入条件（[開発計画](12-development-plan.md) §10）のうち、**
 | 項目 | 値 |
 |---|---|
 | commit | `aa90f6a` |
-| 実装計画 | `docs/superpowers/plans/2026-09-14-m6-experience.md` |
 | 製品画面 | `index.html` + `src/main.ts` |
 | 新規module | `src/ui/app-state.ts`、`src/app/observation-session.ts`、`src/game/rendering/scene-renderer.ts` |
 | 退避 | P0デモを `bench/p0-demo.html` + `src/p0-main.ts` へ移動 |

@@ -15,7 +15,6 @@ M5の受入条件（[開発計画](12-development-plan.md) §9）のうち、**�
 | 項目 | 値 |
 |---|---|
 | commit | `0a07b18` |
-| 実装計画 | `docs/superpowers/plans/2026-09-14-m5-branching.md` |
 | 新規module | `src/domain/stroke/stroke-retrace.ts`、`src/domain/creature/graph-edit.ts` |
 
 ## 3. 実行環境

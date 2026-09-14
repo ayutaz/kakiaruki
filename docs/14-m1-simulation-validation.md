@@ -13,8 +13,6 @@ M1の受入条件（[開発計画](12-development-plan.md) §5）をすべて満
 | 項目 | 値 |
 |---|---|
 | commit | `856188f` |
-| 実装計画 | `docs/superpowers/plans/2026-09-14-m1-simulation-foundation.md` |
-| ロードマップ | `docs/superpowers/plans/2026-09-14-m1-to-m4-roadmap.md` |
 
 ## 3. 実行環境
 

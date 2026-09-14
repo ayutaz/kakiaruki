@@ -13,7 +13,6 @@ M4の受入条件（[開発計画](12-development-plan.md) §8）のうち、**�
 | 項目 | 値 |
 |---|---|
 | commit | `14a391f` |
-| 実装計画 | `docs/superpowers/plans/2026-09-14-m4-stroke-input.md` |
 
 ## 3. 実行環境
 

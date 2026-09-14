@@ -56,7 +56,6 @@
 4. [一筆入力から物理グラフへの変換](04-stroke-to-graph.md)
 5. [物理・関節制御・遺伝的アルゴリズム](05-physics-controller-and-ga.md)
 6. [アーキテクチャとデータ境界](06-architecture.md)
-7. [PoCロードマップと完了条件](07-poc-roadmap.md)
 8. [テスト・品質・性能計画](08-test-quality-and-performance.md)
 9. [リスク・未確定事項・意思決定記録](09-risks-open-questions-and-decisions.md)
 10. [参考資料](10-references.md)
@@ -71,7 +70,9 @@
 19. [M6 体験統合 検証結果](19-m6-experience-review.md)
 20. [M7 安定化と公開判断 検証結果](20-m7-release-readiness.md)
 
-実装計画は `superpowers/plans/` にあります。開発用のページと計測スクリプトは `bench/` にあります（`npm run dev` で `/bench/stroke-input.html` などを開けます）。
+開発用のページと計測スクリプトは `bench/` にあります（`npm run dev` で `/bench/stroke-input.html` などを開けます）。
+
+番号に欠番があります（07）。リリース時に、役目を終えた作業文書（PoCロードマップと各マイルストーンの実装計画）を削除したためです。内容は git 履歴に残っています。
 
 ## 次に行うこと
 

@@ -13,7 +13,6 @@ M3の受入条件（[開発計画](12-development-plan.md) §7）のうち、**�
 | 項目 | 値 |
 |---|---|
 | commit | `6aa9406` |
-| 実装計画 | `docs/superpowers/plans/2026-09-14-m3-evolution-loop.md` |
 
 ## 3. 実行環境
 
