@@ -142,7 +142,9 @@ describe("population lifecycle", () => {
     const firstHeap = heapSamples[0] ?? 0;
     const maxHeap = Math.max(...heapSamples);
     expect(maxHeap - firstHeap).toBeLessThan(HEAP_HEADROOM_BYTES);
-  });
+    // Population 8 × 100世代は単独でも約4秒かかり、既定の5秒に余裕がない。
+    // 他の試験と並列に走ると超えることがあるため、long-run と同様に明示する。
+  }, 30_000);
 
   it("produces the same generation result whether or not earlier generations ran", () => {
     const plan = planForFixture();
